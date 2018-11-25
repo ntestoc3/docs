@@ -6,4 +6,9 @@ magit-status  (C-x g)显示git仓库
   s 变为stage状态,在文件上按tab可以查看新添加的内容
   u 变为unstage状态
   C-SPC 多选文件
-  c 提交更改
+  c 提交更改,再按c提交，添加注释C-c C-c提交完成
+  P push
+
+* 提交到github
+  在windows上配置通过ssh key访问
+  https://github.com/magit/magit/wiki/Pushing-with-Magit-from-Windows
