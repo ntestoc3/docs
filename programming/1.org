@@ -1,0 +1,144 @@
+** 变量绑定和表达式
+   ML程序就是一系列的bindings
+   每个绑定先进行类型检查，然后求值
+   绑定的类型依赖于静态环境(static environment),是文件中之前的绑定
+   绑定如何求值依赖于动态环境(dynamic environment),是文件中之前的值
+
+   每个绑定添加静态环境(用于后面绑定的类型检查)和动态环境(用于后面绑定的求值)
+
+   我们常说的执行环境(environment)是指动态环境。
+   有时用context表示静态环境
+
+  语法指导你如何去写一个binding
+
+  语义意味着:类型检查(程序运行前),
+  求值(运行时)
+
+  变量绑定: 类型检查在静态作用域中
+  求值在动态作用域中
+
+** 表达式规则
+   表达式包含:
+   语法(书写规则)，
+   类型检查规则(产生类型)，
+   求值规则(产生值)
+
+** REPL
+   错误包括:语法错误，类型检查错误，求值错误
+
+** Shadowing
+
+   同名变量的遮蔽
+   新的同名变量绑定会创建一个新的动态环境,遮蔽旧的值.
+
+
+** val
+   学习一门新语言的构造时,就要考虑三个问题:语法是什么?类型检查规则是什么?求值规则是什么?
+
+*** syntax
+    val x = e;
+
+    一个value的值式不能再进行计算的表达式，不能再简化了，
+    比如17是一个value,但8+9不是
+** 常见表达式
+*** 整数常量
+    - Syntax: 数字序列
+    - Type-checking: int类型
+    - Evaluation: 值本身
+
+*** 加
+    - Syntax: e1+e2 e1和e2都是表达式
+    - Type-checking: int类型，但是e1和e2必须也是int类型，否则无法
+      通过类型检查
+    - Evaluation: 计算e1为v1,e2为v2,然后产生v1和v2的和
+
+*** 变量
+    - Syntax: 字母序列，下划线等
+    - Type-checking: 从当前的静态环境(上下文)中找到这个变量并使用它的类型
+    - Evaluation: 在当前的动态环境中查找变量的值并使用
+
+*** 条件
+    - Syntax: *if e1 then e2 else e3* ; 其中 *e1* , *e2* , *e3* 是表达式
+    - Type-checking:  *e1* 为bool类型， *e2* 和 *e3* 类型相同，整个表达式的类型为 *e2* 和 *e3* 的类型
+    - Evaluation： 计算 *e1*,如果结果为 *true*, *e2* 的结果为整个表达式的结果,如果为 *false*, *e3* 的结果为整个表达式的结果
+
+*** 布尔常量
+    - Syntax: *true* 或 *false*
+    - Type-checking: bool
+    - Evaluation： 值自身
+
+*** 小于比较
+    - Syntax: *e1 < e2* ; *e1* 和 *e2* 都是表达式
+    - Type-checking: 表达式为 *bool* 类型,但是 *e1* 和 *e2* 必须是 *int* 类型
+    - Evaluation： 计算 *e1* 为 *v1*, *e2* 为 *v2* ,然后比较 *v1* 和 *v2*,如果 *v1* 小于 *v2*,结果为 *true*, 否则为 *false*
+
+** function
+   语义就是类型规则和求值规则
+
+   当函数定义时创建环境,不是调用时
+
+***  syntax
+    fun x0 (x1:t1, ... , xn:tn) = e
+
+***  Evaluation
+    a function is a value
+    把x0添加到环境中
+
+***  Type-checking
+   添加类型绑定x0
+   类型检查，包括"封闭"静态环境,参数，和函数本身x0(用于递归)
+
+** pairs
+
+*** 构造
+    构造一个2-tuples,2元组
+    多元组
+
+    从简单数据构造复合数据
+**** syntax
+    (e1,e2)
+
+**** Evaluation
+    计算e1为v1, e2为v2;结果是(v1,v2)
+
+**** Type-checking
+   如果e1是类型ta,e2是类型tb,
+   pair表达式的类型为ta * tb
+
+*** 访问
+
+**** syntax
+     #1 e
+     #2 e
+
+**** Evaluation
+     计算e为一个pair值，并返回第一或第二个位置的值
+
+**** type-checking
+     如果e的类型为 ta * tb,则#1 e的类型为ta, #2 e的类型为tb.
+
+** Lists
+   building: []  [v1,v2,...,vn]  e1::e2
+
+   :: 表示 cons
+
+   null e
+   hd e
+   tl e
+
+   type:
+   t list
+   exp:  int list ,  bool list
+   null : 'a list -> bool
+
+** let expressions
+   let /b1 b2 .. bn/ in /e/ end
+
+   scope 作用域
+
+** 函数嵌套
+   在函数内定义帮助函数： 其他地方用不到
+   其他地方会误用
+   方便以后修改和删除
+
+   代码重用

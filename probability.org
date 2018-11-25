@@ -1,0 +1,22 @@
+概率论
+概率思考
+
+概率用于日常决策
+
+probability: three definition
+exact probability definition 也叫classic probability  日常决策应用不行
+empirical definition of probability 经验主义，按照相关频率 基于数据
+subjective probability definition 主观概率定义 没有数据，依照感觉和经验
+
+** Definition and Rules
+   Sample Space (S) 样本空间
+   Event (A,B,...)  选取的部分元素事件
+   对于任意事件A: 0 <= P(A) <= 1
+
+   Definition2: Empirical Probability 有大量数据的情况下
+   事件A的概率=P(A)
+   = (A在实验数据中重复的次数) / (随机实验的总次数)
+   = 事件在一个大量实验中发生的次数比率
+
+   Definition3: Subjective Probability 没有任何数据经验
+   A = P(A) = 事件发生的观点或信念

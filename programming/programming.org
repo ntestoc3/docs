@@ -1,0 +1,5 @@
+* Intro
+  学习编程的核心，不是语言的表面
+  ML,Racket,Ruby
+
+  课程大纲:  学习动机， A B C
