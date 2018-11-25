@@ -1,0 +1,9 @@
+magit-status  (C-x g)显示git仓库
+
+* magit buffer操作
+  n p 用来移动
+  tab 展开或隐藏段落
+  s 变为stage状态,在文件上按tab可以查看新添加的内容
+  u 变为unstage状态
+  C-SPC 多选文件
+  c 提交更改
