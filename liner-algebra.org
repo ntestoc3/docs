@@ -1,0 +1,24 @@
+* why?
+  线性模型
+  线性方程组等价于一个向量方程和矩阵方程
+
+  数据模型
+
+* vector
+  向量有大小和方向
+  magnitude and direction
+
+  比如5mph (5 miles per hour)只有大小，没有方向，用来表示速度
+  5mph east 是一个向量
+
+  不管起点，同样的大小和方向就是相等的
+
+  向量是对象的属性列表
+
+  向量符合交换律s+r = r+s
+
+* 实数坐标空间
+  2维坐标 2-tuple
+
+* matric
+  clojure中矩阵操作 mm:点积 scal:放大

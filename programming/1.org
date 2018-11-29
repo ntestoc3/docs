@@ -131,6 +131,7 @@
    exp:  int list ,  bool list
    null : 'a list -> bool
 
+   ML的list可以表示任意长度，但是同一个list内元素的类型必须一样。
 ** let expressions
    let /b1 b2 .. bn/ in /e/ end
 
@@ -142,3 +143,48 @@
    方便以后修改和删除
 
    代码重用
+
+** Boolean operations
+   /e1/ andalso /e2/
+   /e1/ orelse /e2/
+   not /e1/
+#+BEGIN_SRC sml
+  (* e1 andalso e2 等价于*)
+  if e1 then e2 else false
+
+  (* e1 orelse e2 等价于*)
+  if e1 then true else e2
+
+  (* not e1 等价于*)
+  if e1 then false else true
+#+END_SRC
+
+   比较= <> > < >= <=
+
+** 不可变的优点
+   #+BEGIN_SRC sml
+     fun sort_pair (pr : int * int ) =
+         if #1 pr < #2 pr
+         then pr
+         else (#2 pr, #1 pr)
+                  ;;
+     fun sort_pair2 (pr : int * int) =
+         if #1 pr < #2 pr
+         then (#1 pr, #2 pr)
+         else (#2 pr, #1 pr)
+
+   #+END_SRC
+   sort_pair可能返回一个别名，sort_pair2返回一个新pair,不过在ML中没有任何区别，因为ML中值是不可变的。不用担心别名会修改数据。
+   不像java中返回引用，导致意外数据修改的问题。
+
+   不可变数据是函数式编程的特点和贡献。
+
+** 学习一门编程语言
+   1. Syntax(语法): 如何编写语言构造?
+   2. Semantics(语义): 程序表示什么意思?(求值规则)
+   3. Idioms(风格): 语言特性用来表达计算的典型模式是什么？
+   4. Libraries(库): 标准工具(如数据结构，文件访问，网络访问)
+   5. Tools(工具): 语言相关的工具(如REPL，调试器，代码格式化工具)
+
+   语法通常很无趣。库和工具比较重要，但是可以在实践中学习。
+   学一门新语言重点关注语义和风格

@@ -1,0 +1,7 @@
+* Windows配置
+  参考https://jupyter-notebook.readthedocs.io/en/stable/config.html
+
+  jupyter notebook --generate-config
+
+  关闭autorestart,因为leiningen通过bat运行，会不断重启
+  c.KernelManager.autorestart=False
