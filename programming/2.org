@@ -1,0 +1,397 @@
+#+TITLE: programming-languages学习笔记--第2部分
+#+DESCRIPTION: 测试通过Org-mode提交到cnblogs,本节学习创建自己的类型:定义新类型，构造新类型的值及使用这些值。 思考"复合类型(compound types)"。 使用模式匹配访问复合类型的值。 最后还有尾递归。
+#+KEYWORDS: programming, sml
+#+CATEGORIES: 编程
+#+LANGUAGE: zh-CN
+
+
+* 自定义类型
+  - 基本类型 (int bool unit char)
+  - 复合类型 (tuples, lists, options)
+
+  构造复合类型:
+  - each of: 组合所有 例如:tuples, (int * bool) 包含一个int和一个bool, 与java中带的字段类相似
+  - one of: 选择一个 例如:option, int option可以包含一个int或者空，java中可以通过子类化实现。
+  - self reference: 自引用类型，用于构造递归数据类型，例如列表和树
+
+  list使用了全部3种构造
+
+
+* Records
+  属于"each-of"类型：
+  - record的值用字段来保存
+  - record的类型也用字段保存
+  - 字段的顺序无关紧要
+
+  与tuple相比更容易记忆(有字段名)，
+
+  注意代码中-开始的行是repl的输入，下面是输出。
+#+begin_src sml
+  - val x = {bar = (1+2, true andalso true), foo = 3+4, baz = (false,9)};
+  val x = {bar=(3,true),baz=(false,9),foo=7}
+          : {bar:int * bool, baz:bool * int, foo:int}
+  - #bar x;
+  val it = (3,true) : int * bool
+  - #foo x;
+  val it = 7 : int
+#+end_src
+   ML中不需要定义record类型，直接写record表达式，类型检查器会给出正确的类型。
+
+
+* tuples as syntactic sugar
+  records和tuples很相似。都是"each-of"构造。唯一的不同是records通过名称访问，tuples通过位置访问。
+  java的方法调用组合了这两种方式:方法内使用变量名访问不同的参数，但调用者通过位置传递参数。
+
+  可以通过构造records来定义tuples:
+#+begin_src sml
+  - - val a_pair = (3+1, 4+2);
+  val a_pair = (4,6) : int * int
+
+  - - val a_record = {second=4+2, first=3+1};
+  val a_record = {first=4,second=6} : {first:int, second:int}
+
+  - - val another_pair = {2=5, 1=6};
+  val another_pair = (6,5) : int * int
+
+  - - #1 a_pair + #2 another_pair;
+  val it = 9 : int
+
+  - - val x = {3="hi", 1=true};
+  val x = {1=true,3="hi"} : {1:bool, 3:string}
+
+  - - val y = {3="hi", 1=true, 2=3+2};
+  val y = (true,5,"hi") : bool * int * string
+#+end_src
+  实际上，tuple就是record, tuple是record的语法糖
+
+  方便设计实现(语言核心足够简单)，方便理解
+
+* datatype bindings
+#+begin_src sml
+  datatypee mytype = TwoInts of int * int
+                   | Str of string
+                   | Pizza
+#+end_src
+  每个mytype的值都从一个构造器产生,
+  每个值包括:构造的tag, 对应的数据
+
+  上面的示例创建一个新类型 *mytype* 和3个构造器 *TwoInts*, *Str*, *Pizza*
+
+  构造器两种表示，它可以是创建新类型值的函数(如果有 *of t* )，或者是新类型的值。
+  上面的示例中， *TwoInts* 是一个函数，类型为 *int\*int -> mytype*, *Str* 是一个类型为 *string->mytype* 的函数， *Pizza* 是类型为 *mytype* 的值。
+
+
+  要访问datatype的值，需要:
+  1. 检查是哪个构造器构造的
+  2. 提取数据
+
+  例如: null 和 isSome检查;
+  ht,tl 和 valOf 提取数据
+
+#+begin_src sml
+  - - datatype exp = Constant of int
+                   | Negate of exp
+                   | Add of exp * exp
+                   | Multiply of exp * exp ;
+  datatype exp
+    = Add of exp * exp | Constant of int | Multiply of exp * exp | Negate of exp
+
+  - - val r = Add (Constant (10 + 9), Negate (Constant 4));
+  val r = Add (Constant 19,Negate (Constant 4)) : exp
+
+  - - fun eval e =
+          case e of
+              Constant i     => i
+           |  Negate e2      =>  ~ (eval e2)
+           |  Add(e1, e2)    => (eval e1) + (eval e2)
+           |  Multiply(e1,e2) =>  (eval e1) * (eval e2)
+          ;
+  = val eval = fn : exp -> int
+
+  - - eval r;
+  val it = 15 : int
+
+#+end_src
+* case 表达式
+  ML使用case表达式和模式匹配访问"one-of"值
+#+begin_src sml
+  - - datatype mytype = TwoInts of int * int
+                      | Str of string
+                      | Pizza
+                                 ;
+  = datatype mytype = Pizza | Str of string | TwoInts of int * int
+
+  - fun f (x : mytype) =
+        case x of
+            Pizza => 3
+         |  Str s  =>  8
+         |  TwoInts(i1, i2) => i1 + i2
+                                 ;
+  = val f = fn : mytype -> int
+
+  - - f Pizza;
+  val it = 3 : int
+
+  - - f (TwoInts (7, 9));
+  val it = 16 : int
+#+end_src
+
+  在某种意义上，case表达式就像一个更强大的if-then-else表达式。它首先求值 *case* 和 *of* 中间的表达式，然后求值第一个匹配的分支的表达式。和条件表达式一样，每个分支表达式必须有相同的类型，作为case表达式的值。
+
+  对于每个分支 *p => e* p是一个模式，e是一个表达式；使用|分割多个分支。模式看起来像表达式，但不要把它们想做表达式。它们用来匹配case的第一个表达式( *case* 后面的部分)的值。这就是为什么case表达式叫做模式匹配。
+
+
+* 类型同义词
+  type aname = t
+
+  两个名字可以互换使用
+
+#+begin_src sml
+  - datatype suit = Club | Diamond | Heart | Spade ;
+  datatype suit = Club | Diamond | Heart | Spade
+
+  - datatype rank = Jack | Queen | King | Ace | Num of int;
+  datatype rank = Ace | Jack | King | Num of int | Queen
+
+  - type card = suit * rank;
+  type card = suit * rank
+
+  - type name_record = { student_num : int option,
+                         first : string,
+                         middle : string option,
+                         last : string };
+  type name_record =
+       {first:string, last:string, middle:string option, student_num:int option}
+
+  - fun is_Queen_of_Spades (c : card) =
+       #1 c = Spade andalso #2 c = Queen;
+  val is_Queen_of_Spades = fn : card -> bool
+
+  - val c1 : card = (Diamond, Ace);
+  val c1 = (Diamond,Ace) : card
+
+  - val c2 : suit * rank = (Heart, Ace);
+  val c2 = (Heart,Ace) : suit * rank
+
+  - val c3 = (Spade, Ace);
+  val c3 = (Spade,Ace) : suit * rank
+
+  - is_Queen_of_Spades c1;
+  val it = false : bool
+
+  - is_Queen_of_Spades c2;
+  val it = false : bool
+
+  - is_Queen_of_Spades c3;
+  val it = false : bool
+
+#+end_src
+
+* Lists和Options也是datatype
+  因为datatype可以递归定义，我们可以用来定义自己的lists类型:
+#+begin_src sml
+  - datatype my_int_list = Empty
+                         | Cons of int * my_int_list ;
+  = datatype my_int_list = Cons of int * my_int_list | Empty
+
+  - val one_two_three = Cons(1, Cons(2, Cons(3, Empty)));
+  val one_two_three = Cons (1,Cons (2,Cons #)) : my_int_list
+
+  - fun append_mylist (xs, ys) =
+      case xs of
+          Empty        => ys
+        | Cons(x, xs') =>  Cons(x, append_mylist(xs', ys));
+  = val append_mylist = fn : my_int_list * my_int_list -> my_int_list
+
+#+end_src
+
+  对于options, *SOME* 和 *NONE* 是构造器。
+  对于lists来说 *[]* 和 *::* 都是构造器。::有点特殊，因为它是中缀操作符(在两个操作数中间)。
+#+begin_src sml
+  - fun inc_or_zero intoption =
+      case intoption of
+          NONE => 0
+       |  SOME i => i + 1 ;
+  = val inc_or_zero = fn : int option -> int
+
+  - fun append(xs, ys) =
+      case xs of
+          [] => ys
+       |  x::xs' => x :: append(xs', ys) ;
+  = val append = fn : 'a list * 'a list -> 'a list
+#+end_src
+
+  模式匹配的优点: 不会有例外情况。不能应用错误的函数。
+
+* 多态数据类型
+  好的语言设计：定义自己的多态类型
+#+begin_src sml
+  datatype 'a option = NONE | SOME of 'a
+
+  datatype 'a mylist = Empty | Cons of 'a * 'a mylist
+
+  datatype ('a, 'b) tree =
+           Node of 'a * ('a, 'b) tree * ('a, 'b) tree
+           | Leaf of 'b
+#+end_src
+
+* Each-of类型的模式匹配:val绑定的真相
+  val绑定模式，val绑定可以使用模式， val p = e, 例如:
+#+begin_src sml
+  - val (x,y) = (1,2);
+  val x = 1 : int
+  val y = 2 : int
+
+  - val {f1=a, f2=b} = {f2 =5, f1=3};
+  val a = 3 : int
+  val b = 5 : int
+#+end_src
+
+  当知道一个模式肯定会被匹配时，使用模式匹配就是为了提取值。
+#+begin_src sml
+  - fun full_name (r : {first:string, middle:string, last:string}) =
+      let val {first=x, middle=y, last=z} = r
+      in
+          x ^ " " ^ y ^ " " ^ z
+      end
+  val full_name = fn : {first:string, last:string, middle:string} -> string
+
+  - fun sum_triple (triple : int*int*int) =
+      let val (x,y,z) = triple
+      in
+          x + y + z
+      end
+  val sum_triple = fn : int * int * int -> int
+
+  (* 在定义函数绑定中使用模式 *)
+  - fun full_name {first=x, middle=y, last=z} = x ^ " " ^ y ^ " " ^ z
+  = val full_name = fn : {first:string, last:string, middle:string} -> string
+
+  - full_name {first="a", middle="b", last="c"};
+  val it = "a b c" : string
+
+  - fun sum_triple (x,y,z) = x + y + z
+  = val sum_triple = fn : int * int * int -> int
+#+end_src
+
+  ML中的所有函数都是一个参数，按照模式匹配展开，可以是tuple:(a,b,c);也可以是record:{a,b,c}或者其它。
+  这种灵活性很有用，可以把函数的返回值直接传递给其它有多个参数的函数。没有无参数的函数，hello()也是一个参数(空的tuple， *unit* 类型)。因为存在预定义的类型 , *datatype unit = ()*
+
+* 类型推断,多态类型与相等类型
+  在ML中，所有的变量和函数都有一个类型，类型推断只是表示不需要把类型写下来。
+
+  类型推断有时会让你的函数更通用。
+
+  多态表示更通用的类型，例如append的类型 *'a list * 'a list -> 'a list* ,可以统一地把'a替换为 *string*,就像append具有 *string list * string list -> string list* 类型一样使用。可以用任何类型替换'a。
+
+  *''a* 表示相等类型：
+#+begin_src sml
+  - fun same_thing(x,y) = if x=y then "yes" else "no";
+  stdIn:1.28 Warning: calling polyEqual
+  val same_thing = fn : ''a * ''a -> string
+#+end_src
+
+* 嵌套模式
+  模式是递归的。通常模式匹配就是取一个值和一个模式，然后确定模式是否与值匹配，如果匹配，变量绑定到值的正确部分。模式匹配的递归定义的关键点:
+  - 一个变量模式(x)匹配任意值v并引入一个绑定
+  - 模式 *C* 匹配值 *C* ，如果 *C* 是一个没有任何数据的构造器
+  - 模式 *C p* (构造器 *C* 和 模式 *p* )匹配一个值 *C v* (注意构造器相同),如果 *p* 匹配 *v* (嵌套模式匹配携带的值)。它引入了 *p* 匹配 *v* 的绑定。
+  - 模式(p1,p2,...,pn)匹配tuple值(v1,v2,...,vn),如果p1匹配v1,p2匹配v2,...,pn匹配vn.它引入所有递归匹配引入的绑定。
+  - record模式与tuple类似 {f1=p1,...,fn=pn}
+
+  模式匹配中使用通配符 *_* 匹配所有值，但不会引入新绑定。
+
+#+begin_src sml
+  - exception BadTriple
+  exception BadTriple
+
+  - fun zip list_triple =
+      case list_triple of
+         ([],[],[]) => []
+       | (hd1::tl1, hd2::tl2, hd3::tl3) => (hd1,hd2,hd3)::zip(tl1,tl2,tl3)
+       | _ => raise BadTriple
+  val zip = fn : 'a list * 'b list * 'c list -> ('a * 'b * 'c) list
+
+  - fun unzip3 lst =
+      case lst of
+          [] => ([],[],[])
+       |  (a,b,c)::tl => let val (l1,l2,l3) = unzip3 tl
+                         in
+                             (a::l1, b::l2, c::l3)
+                         end
+  val unzip3 = fn : ('a * 'b * 'c) list -> 'a list * 'b list * 'c list
+
+  - fun nondecreasing intlist =
+      case intlist of
+          [] => true
+       |  _::[] => true
+       |  head::(neck::rest) => (head <= neck andalso nondecreasing (neck::rest))
+  val nondecreasing = fn : int list -> bool
+
+  - datatype sgn = P | N | Z
+  = datatype sgn = N | P | Z
+
+  - fun multsign (x1,x2) =
+      let fun sign x = if x=0 then Z else if x>0 then P else N
+      in
+          case (sign x1,sign x2) of
+              (Z, _) => Z
+           |  (_, Z) => Z
+           |  (P, P) => P
+           |  (N, N) => N
+           |  _      => N
+      end
+  = val multsign = fn : int * int -> sgn
+#+end_src
+
+* 异常
+  ML有内置的异常概念。使用 *raise* 抛出一个异常。使用异常绑定创建自己的异常。
+  异常构造器可以创建 *exn* 类型的值。
+#+begin_src sml
+  - exception MyUndesirableCondition
+  - exception MyOtherException of int * int
+
+  - fun maxlist (xs, ex) =
+      case xs of
+          [] => raise ex
+       |  x::[]  => x
+       |  x::xs' => Int.max(x,maxlist(xs',ex));
+  val maxlist = fn : int list * exn -> int
+#+end_src
+
+  处理异常使用handle表达式: *e1 handle p => e2* , e1和e2是表达式，p是用来匹配异常的模式。
+
+* 尾递归和累加器
+  新的编程模型:尾递归，编写有效率的递归函数。使用累加器把一些函数变为尾递归。
+#+begin_src sml
+  - fun sum1 xs =
+      case xs of
+         [] => 0
+       | i::xs' => i + sum1 xs'
+  val sum1 = fn : int list -> int
+
+  - fun sum2 xs =
+      let fun f (xs,acc) =
+              case xs of
+                  [] => acc
+               |  i::xs' => f(xs',i+acc)
+      in
+          f(xs,0)
+      end
+  val sum2 = fn : int list -> int
+#+end_src
+  函数调用的实现依靠调用栈(call stack)，调用栈的内容是每个函数为一个元素，这个函数是已启动但还没有完毕的调用。
+  每个元素保存局部变量和函数还未求值的部分。当一个函数体内调用了另一个函数，一个新的元素push到调用栈，当被调用的函数完成后弹出。
+
+  对于 *sum1* ,每个 *sum1* 递归调用都会产生一个调用栈元素，栈会和列表一样大。因为在弹出每个栈帧后，调用者要加 *i* 到每个递归结果并返回。
+
+  对于 *sum2* ,在被调用函数返回后，调用函数不需要做任何事，只需返回被调用函数的结果。这种情况叫做尾递归，函数式语言通常会对这种情况优化:当调用一个尾递归调用，调用者的栈帧在调用之前弹出，被调用者的栈帧替换调用者的。这很简单：调用者只是返回被调用者的结果。因此，调用 *sum2* 只需要1个栈帧。
+
+  使用累加器是把递归函数转换为尾递归函数的常用方法。通常转换一个非尾递归函数到尾递归函数需要满足结合律。
+
+  如果一个调用在尾部位置，它就是尾递归调用。尾部位置定义如下：
+  - 在 *fun f(x) = e* 中, *e* 在尾部位置
+  - 如果一个表达式不在尾部位置，那么它的子表达式都不在尾部位置
+  - 如果 *if e1 then e2 else e3* 在尾部位置，则 *e2* 和 *e3* 在尾部位置( *e1* 不在),case表达式类似。
+  - 如果 *let b1 ... bn in e end* 在尾部位置， 则 *e* 在尾部位置(但绑定中的表达式不在)。
+  - 函数调用参数不在尾部位置。

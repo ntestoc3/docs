@@ -1,8 +1,16 @@
+#+TITLE: 线性代数学习笔记
+#+DESCRIPTION: 学习Linear algebra的笔记，并学习在org-mode中使用latex写数学公式
+#+KEYWORDS: 数学, linear algebra
+#+CATEGORIES: 数学
+#+LANGUAGE: zh-CN
+#+latex_compiler: lualatex
+#+LATEX_HEADER: \usepackage{ctex}
+
 * why?
   线性模型
   线性方程组等价于一个向量方程和矩阵方程
 
-  数据模型
+  数据模型,线性代数是使用虚拟数字世界表示真实物理世界的工具。
 
 * vector
   向量有大小和方向
@@ -22,3 +30,188 @@
 
 * matric
   clojure中矩阵操作 mm:点积 scal:放大
+
+** 向量
+   向量相加: \[v+w\]
+   使用c和d乘它们获得cv和cw.组合这两种操作获得线性组合(linear combination): \[ cv+dw = c [_1^1]+d[_3^2]=[_{c+3d}^{c+2d}]\]
+
+   列向量v: \[ v = [_{v2}^{v1}]\] v1=v的第一个成分 v2=v的第二个成分
+   两个向量相加，它们的第一和第二部分仍然是分开的:
+   \[
+   v=[_{v2}^{v1}] \quad 和  \quad w=[_{w2}^{w1}] \quad 相加 \quad v+w=[_{v2+w2}^{v1+w1}]
+   \]
+
+   相减与此类似v-w等于v_1-w_1 和v_2-w_2
+
+   另一个基本操作是标量乘法(scalar multiplication)。
+   \[
+   2v = [_{2v2}^{2v1}] = v + v \quad -v = [_{-v2}^{-v1}]
+   \]
+
+   注意-v和v的和是0向量，但与数字0不同，有两个成分[_0^0]
+
+   组合加与标量乘法产生线性组合(linear combination)。cv和dw的和是一个线性组合cv + dw.
+
+#+caption: ocaml中操作向量
+#+name:vector
+#+begin_src ocaml :exports both
+  exception VectorMismatch
+
+  (** 两个向量相加 *)
+  let rec v2add x y =
+    match x,y with
+    | [],[] -> []
+    | x1::xs,y1::ys -> x1 +. y1 :: v2add xs ys
+    | _ -> raise VectorMismatch
+
+  (** 三个向量相加 *)
+  let rec v3add x y z =
+    match x,y,z with
+    | [],[],[] -> []
+    | x1::xs,y1::ys,z1::zs -> x1 +. y1 +. z1 :: v3add xs ys zs
+    | _ -> raise VectorMismatch
+
+  (** 向量放大 *)
+  let rec vscal s v =
+    match v with
+    | [] -> []
+    | x::xs -> x *. s :: vscal s xs
+
+  let vprint title v =
+    print_string title;
+    print_newline ();
+    List.iter (Printf.printf "| %F |\n") v
+
+  let v = [1.; 1.; -1.]
+  let w = [2.; 3.; 4.];;
+  vprint "v:" v;;
+  vprint "w:" w;;
+  vprint "v+w:" (v2add v w);;
+  vprint "3w:" (vscal 3. w);;
+  v3add [1.; 0.; 3.;] (vscal 4. [1.; 2.; 1.;]) (vscal (-2.) [2.; 3.; -1.]);;
+#+end_src
+
+\[ \begin{bmatrix} 1 \\ 0 \\ 3 \end{bmatrix} + 4 \begin{bmatrix} 1 \\ 2 \\ 1 \end{bmatrix} - 2 \begin{bmatrix} 2 \\ 3 \\ -1 \end{bmatrix} \] 的结果是:
+#+RESULTS: vector
+| 1 | 2 | 9 |
+
+
+   二维和三维向量容易用绘图表示，
+   有两个成分的向量对应xy平面上的一个点.x=v1,y=v2的坐标。从(0,0)开始的话，就在点(v1,v2)结束。
+
+   含有三个成分的向量(v1,v2,v3),xy平面替换为xyz空间:
+\begin{equation}
+   r=\begin{bmatrix}
+      1 \\
+      1 \\
+      -1
+      \end{bmatrix}
+   \quad 和 \quad
+   w=\begin{bmatrix}
+       2 \\
+       3 \\
+       4
+     \end{bmatrix}
+   \quad 和 \quad
+   v+w=\begin{bmatrix}
+       3 \\
+       4 \\
+       5
+     \end{bmatrix}
+\end{equation}
+
+
+   \[
+    v = \begin{bmatrix}
+    1 \\
+    1 \\
+    -1
+    \end{bmatrix} \quad 也可以写为 \quad v = (1,1,-1)
+   \]
+
+
+   用行的形式写是为了节约空间，但v不是一个行向量,它是一个列向量.
+
+   单个向量u的线性组合是cu.两个向量的线性组合是cu+dv.三个向量的线性组合是cu+dv=ew.
+   对于有三个成分的向量,cu组合是填充通过(0,0,0)的线,cu+dv的组合是填充通过(0,0,0)的平面,cu+dv+ew的组合填充3维空间。
+
+
+
+   \[
+   ai+bj=[_a^b]
+   \]
+
+   r向量的长度:
+   \[
+   \| r \| = \sqrt{a^2+b^2}
+   \]
+
+   两个向量(二维):
+   \[
+   r = [_2^3]=[_{r_j}^{r_i}]
+   \]
+   \[
+   s=[_2^{-1}]=[_{s_j}^{s_i}]
+   \]
+
+   dot product(点积):
+   \[
+   r \cdot s = r_is_i + r_js_j = 3 \times -1 + 2 \times 2 = 1 = s \cdot r
+   \]
+
+\begin{equation}
+   r=\begin{bmatrix}
+      r_1 \\
+      r_2 \\
+      \vdots \\
+      r_n
+      \end{bmatrix}
+   s=\begin{bmatrix}
+       s_1 \\
+       s_2 \\
+       \vdots \\
+       s_n
+     \end{bmatrix}
+   t=\begin{bmatrix}
+       t_1 \\
+       t_2 \\
+       \vdots \\
+       t_n
+     \end{bmatrix}
+\end{equation}
+
+     \begin{align*}
+                    r \cdot (s + t) &= r_1(s_1+t_1)+r_2(s_2+t_2)+\dots+r_n(s_n+t_n) \\
+              &= r_1s_1+r_1t_1+r_2s_2+r_2t_2+\dots+r_ns_n+r_nt_n \\
+              &= r \cdot s + r \cdot t
+   \end{align*}
+
+   向量长度的平方等于与自身的点积
+\[
+r \cdot r = r_ir_i + r_jr_j = r_i^2+r_j^2 = \|r\|^2
+\]
+
+   \[
+   r \cdot s = |r||s| \cos\theta
+   \]
+
+** 矩阵的逆
+   矩阵A:
+   \[ A = \begin{bmatrix}
+   a & b \\
+   c & d
+   \end{bmatrix}
+   \]
+
+   A的逆:
+   \[
+   A^{-1} = \frac{1}{ad-bc}\begin{bmatrix}
+   d & -b \\
+   -c & a
+   \end{bmatrix}
+   \]
+
+   A的行列式:
+   \[
+   \|A\| = ad-bc
+   \]
