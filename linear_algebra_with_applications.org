@@ -1,10 +1,11 @@
 #+TITLE: 线性代数学习笔记二
 #+DESCRIPTION: 学习线性代数及其应用读书笔记
-#+KEYWORDS: 数学, linaer algebra
+#+KEYWORDS: 数学, linear algebra
 #+CATEGORIES: 数学
 #+LANGUAGE: zh-CN
 #+latex_compiler: lualatex
 #+LATEX_HEADER: \usepackage{ctex}
+#+OPTIONS: author:nil
 
 * 线性方程组
   矩阵记号是为解方程组带来方便。 解方程组，消元法。
@@ -105,4 +106,3 @@
 
    齐次方程Ax=0有非平凡解，当且仅当方程至少有一个自由变量。
 
-   测试

@@ -1,12 +1,13 @@
 #+TITLE: 统计学学习笔记
 #+DESCRIPTION: 学习统计学
-#+KEYWORDS: 统计学, statistics
+#+KEYWORDS: 统计学
 #+CATEGORIES: 统计学
 #+LANGUAGE: zh-CN
 #+latex_compiler: lualatex
 #+LATEX_HEADER: \usepackage{ctex}
 
 * 线性方程组
+
 * 变量，案例
   各种属性是变量(列)
   每个个体是案例(行)
