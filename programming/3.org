@@ -1,0 +1,550 @@
+#+TITLE: programming-languages学习笔记--第3部分
+#+DESCRIPTION: 本节学习内容:first-class functions、function closures.
+#+KEYWORDS: programming, sml
+#+CATEGORIES: 编程
+#+LANGUAGE: zh-CN
+
+* 术语
+  函数式编程有几种不同的概念,最重要的两点：
+  - 在大部分/所有情况下避免可变性(mutation）
+  - 像使用值一样使用函数
+   
+  还有其它相关概念： 
+  - 递归风格和递归数据结构
+  - 编程风格和语法接近传统数学定义的函数
+  - 使用惰性的编程模型
+  
+  first-class function: 函数作为一等公民，像其它值一样可以在任何地方使用。
+#+BEGIN_SRC sml :exports both
+  fun double x = 2 * x
+  fun incr x = x + 1
+  val a_tuple = (double, incr, double(incr 7))
+  val eighteen = (#1 a_tuple) 9
+#+END_SRC
+
+#+RESULTS:
+: val double = fn : int -> int
+: val incr = fn : int -> int
+: val a_tuple = (fn,fn,16) : (int -> int) * (int -> int) * int
+: val eighteen = 18 : int
+
+   function Closures: 函数闭包是指函数使用在它外面定义的变量。
+   higher-order function:高阶函数是指接受函数作为参数或返回其它函数的函数
+
+* 函数作为参数
+  把函数作为参数传递给另外一个函数，组织常用代码的优雅策略。
+
+#+BEGIN_SRC sml :exports both
+  fun increment_n_times_lame (n, x) = (* n + x *)
+      if n = 0 
+      then x
+      else 1 + increment_n_times_lame(n-1, x)
+
+  fun double_n_times_lame (n, x) = (* 2^n * x *)
+      if n = 0
+      then x
+      else 2 * double_n_times_lame(n-1, x)
+
+  fun nth_tail_lame (n, xs) = (* 3, [4,8,12,16] -> 16 *)
+      if n = 0 
+      then xs
+      else tl (nth_tail_lame(n-1, xs))
+
+  (** 上面的三个函数有共同特征,提取共同点，形成新的模型，更好地组织代码 *)
+  fun n_times (f, n, x) = 
+      if n = 0
+      then x
+      else f (n_times(f, n-1,x))
+  (** 等同于 f(f(f(f ... (x)))) **)
+
+  fun increment x = x + 1
+  fun double x = x + x
+
+  val x1 = n_times(double, 4, 7)
+  val x2 = n_times(increment, 4, 7)
+  val x3 = n_times(tl, 2, [4,8,12,16])
+
+  fun addition(n,x) = n_times(increment,n,x)
+  fun double_n_times(n,x) = n_times(double,n,x)
+  fun nth_tail(n,x) = n_times(tl,n,x)
+
+  (* 新的功能更容易添加                           *)
+  fun triple x = 3 * x
+  fun triple_n_times(n,x) = n_times(triple,n,x)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+val increment_n_times_lame = fn : int * int -> int
+val double_n_times_lame = fn : int * int -> int
+val nth_tail_lame = fn : int * 'a list -> 'a list
+val n_times = fn : ('a -> 'a) * int * 'a -> 'a
+val increment = fn : int -> int
+val double = fn : int -> int
+val x1 = 112 : int
+val x2 = 11 : int
+val x3 = [12,16] : int list
+val addition = fn : int * int -> int
+val double_n_times = fn : int * int -> int
+val nth_tail = fn : int * 'a list -> 'a list
+val triple = fn : int -> int
+val triple_n_times = fn : int * int -> int
+#+end_example
+
+* 多态类型和函数作为参数
+  Higher-order函数更通用和可重用是因为它们有多态类型。
+  
+  参数化多态(parametric polymorphism),也叫泛型(generic types)。函数可以接受任何类型的参数。
+* 匿名函数
+  辅助函数最好不要暴露在外面，使用匿名函数解决这个问题。
+
+#+BEGIN_SRC sml :exports both
+  fun triple_n_times2 (n,x) = 
+      let fun trip y = 3 * y
+      in
+          n_times(trip,n,x)
+      end
+    
+  fun triple_n_times3 (n,x) = 
+      n_times(let fun triple x = 3*x in triple end,n,x)
+
+  (* 使用匿名函数更好的表达 *)
+  fun triple_n_times4 (n,x) = 
+      n_times(fn x => 3*x,n,x)
+#+END_SRC
+
+#+RESULTS:
+: val triple_n_times2 = fn : int * int -> int
+: val triple_n_times3 = fn : int * int -> int
+: val triple_n_times4 = fn : int * int -> int
+
+   匿名函数常用来作为高阶函数(higher-order function)的参数。但不能用于递归函数，因为没有函数名。fun绑定是val绑定加上匿名函数的语法糖:
+   #+BEGIN_SRC sml
+     fun triple x = 3 * x
+     val triple = fn y => 3*y
+   #+END_SRC
+
+   #+RESULTS:
+   : val triple = <hidden-value> : int -> int
+   : val triple = fn : int -> int
+  
+* 不必要的函数包装
+   多余的包装(poor style):
+
+   if x then true else false
+
+   (fn x => tl x)
+
+* Map 和 Filter
+  最常用的两个高阶函数。
+
+#+BEGIN_SRC sml :exports both
+  fun map(f,xs) = 
+      case xs of 
+          [] => []
+       | x::xs' => (f x)::map(f,xs')
+
+  val x1 = map((fn x => x + 1), [4,5,6,7])
+  val x2 = map(hd, [[1,2],[3,4],[5,6,7]])
+
+  fun filter(f,xs) = 
+      case xs of 
+          [] => [] 
+       |  x::xs' =>
+          if f x
+          then x::(filter(f, xs'))
+          else filter(f, xs')
+
+  fun is_even v = (v mod 2 = 0)
+  fun all_even xs = filter(is_even, xs)
+
+  fun all_even_snd xs = filter((fn (_,v) => is_even v), xs)
+  val x = all_even [3,4,6,0,13]
+  val y = all_even_snd [(3,4),(5,6),(8,7),(0,9)]
+
+#+END_SRC
+
+#+RESULTS:
+: val map = fn : ('a -> 'b) * 'a list -> 'b list
+: val x1 = [5,6,7,8] : int list
+: val x2 = [1,3,5] : int list
+: val filter = fn : ('a -> bool) * 'a list -> 'a list
+: val is_even = fn : int -> bool
+: val all_even = fn : int list -> int list
+: val all_even_snd = fn : ('a * int) list -> ('a * int) list
+: val x = [4,6,0] : int list
+: val y = [(3,4),(5,6)] : (int * int) list
+
+* 返回函数
+  返回一个函数:
+#+BEGIN_SRC sml :exports both
+  fun double_or_triple f = 
+      if f 7 
+      then fn x => 2 * x
+      else fn x => 3 * x 
+#+END_SRC  
+
+#+RESULTS:
+: val double_or_triple = fn : (int -> bool) -> int -> int
+  注意函数的类型，等价于(int -> bool) -> (int -> int), 因为->是右结合的。
+
+* 词法作用域
+  Lexical Scope,在函数体内可以使用任何作用域内的绑定,但是函数可以传递(作为参数或返回值)：它的作用域在哪里?答案是函数定义的地方(大部分编程语言)，不是调用的地方。这样的语义叫做词法作用域。
+#+BEGIN_SRC sml :exports both
+  val a = 3 
+  fun test b = 
+      "test " ^ Int.toString a ^ " " ^ b
+  val a = 5
+  val r = test "woh"
+#+END_SRC
+
+#+RESULTS:
+: val a = <hidden-value> : int
+: val test = fn : string -> string
+: val a = 5 : int
+: val r = "test 3 woh" : string
+
+  另外一种是动态作用域，环境在函数调用的地方。
+#+BEGIN_SRC emacs-lisp :exports both
+  (setq a 3)
+  (defun test (b)
+    (message "test %s %s" a b))
+  (setq a 5)
+  ;可以看到emacs lisp是动态作用域,c中的#define宏展开也是动态作用域，在展开的地方获
+  ;得当前环境
+  (test "woh")
+#+END_SRC
+
+#+RESULTS:
+: test 5 woh
+
+* 环境和闭包
+   编程语言的实现保存了函数定义时需要的环境，用来实现词法作用域。
+
+   一个函数值有两个部分
+   - 要执行的代码
+   - 函数定义(创建)时的环境
+   一个函数调用在环境部分(加上函数参数)中求值代码部分。
+
+   这两个部分就叫做函数闭包(function closure),这样做的原因是函数的代码可以拥有自由变量(不是在函数的代码中绑定的变量,所以它们需要绑定到一些外部环境中),闭包附带一个提供所有这些绑定的环境。因此闭包是"封闭"的——它拥有给定一个函数参数，然后产生函数结果所需要的一切东西。
+   
+* 词法作用域和高阶函数
+  规则相同，函数体在函数定义(创建)的环境中求值(加上函数参数)。
+#+BEGIN_SRC sml :exports both
+  val x = 1
+
+  fun f y = 
+      let 
+          val x = y + 1
+      in
+          fn z => x + y + z (* 2y + 1 + z*)
+      end
+
+  val x = 3 (*不相关 *)
+  val g = f 4
+  val y = 5 (*不相关 *)
+  val z = g 6
+#+END_SRC  
+
+#+RESULTS:
+: val x = <hidden-value> : int
+: val f = fn : int -> int -> int
+: val x = 3 : int
+: val g = fn : int -> int
+: val y = 5 : int
+: val z = 15 : int
+* 为什么用词法作用域
+  - 词法作用域:使用函数定义时的环境
+  - 动态作用域:使用函数调用时的环境
+
+  使用词法作用域的优点：
+  - 函数的语义不依赖于使用的变量名
+  - 函数在定义的地方可以进行类型检查和推断
+  - closure可以很容易地保存需要的数据
+  
+
+  异常处理更像是动态作用域:
+  raise e查找要求值的处理表达式。这个查找过程使用动态的调用栈。
+
+* 闭包和重复计算
+  已知:
+  - 函数体直到函数调用时才会求值
+  - 在函数调用时，函数体每次都会求值
+  - 变量绑定在绑定时求值它的表达式，不是变量使用时
+
+  对于闭包来说，这就意味着我们可以避免不依赖函数参数的重复计算。
+
+* Fold和更多闭包
+  fold,reduce,inject表示的是同一个意思，是另外一个常用的用于递归数据结构的高阶函数。
+#+BEGIN_SRC sml :exports both
+  fun fold (f,acc,xs) = 
+      case xs of 
+          [] => acc
+       |  x::xs' => fold(f, f(acc,x), xs')
+
+  (* sum list *)
+  fun f1 xs = fold ((fn (x,y) => x+y), 0, xs) 
+
+  (* 所有元素都大于零？ *)
+  fun f2 xs = fold ((fn (x,y) => x andalso y >= 0), true ,xs)
+
+  fun f4 (xs,s) = 
+      let 
+          val i = String.size s
+      in
+          fold((fn (x,y) => x andalso String.size y < i), true, xs)
+      end
+
+  fun f5 (g,xs) = fold((fn(x,y) => x andalso g y), true, xs)
+
+  fun f4_2 (xs,s) = 
+      let 
+          val i = String.size s
+      in
+          f5(fn y => String.size y < i, xs)
+      end
+#+END_SRC
+
+#+RESULTS:
+: val fold = fn : ('a * 'b -> 'a) * 'a * 'b list -> 'a
+: val f1 = fn : int list -> int
+: val f2 = fn : int list -> bool
+: val f4 = fn : string list * string -> bool
+: val f5 = fn : ('a -> bool) * 'a list -> bool
+: val f4_2 = fn : string list * string -> bool
+
+    - 像 *map,filter* 和 *fold* 这样的函数借助于闭包和词法作用域变得很强大。
+    - 函数传递的参数可以使用它自己环境中的任意私有数据
+    - 迭代器不需要知道它的数据和类型
+* closure用法:组合函数
+#+BEGIN_SRC sml :exports both
+  fun compose(f,g) = fn x => f(g x)
+
+  fun sqrt_of_abs i = Math.sqrt (Real.fromInt (abs i))
+  fun sqrt_of_abs2 i = (Math.sqrt o Real.fromInt o abs) i
+  val sqrt_of_abs3 = Math.sqrt o Real.fromInt o abs
+#+END_SRC  
+
+#+RESULTS:
+: val compose = fn : ('a -> 'b) * ('c -> 'a) -> 'c -> 'b
+: val sqrt_of_abs = fn : int -> real
+: val sqrt_of_abs2 = fn : int -> real
+: val sqrt_of_abs3 = fn : int -> real
+
+  上面使用了sml内置的中缀操作符o,创建自己的中缀操作符:
+#+BEGIN_SRC sml exports both
+  infix !>
+  fun x !> f = f x
+  fun sqrt_of_abs i = i !> abs !> Real.fromInt !> Math.sqrt
+#+END_SRC
+
+#+RESULTS:
+: infix !>
+: val !> = fn : 'a * ('a -> 'b) -> 'b
+: val sqrt_of_abs = fn : int -> real
+* 闭包用法:Currying
+#+BEGIN_SRC sml :exports both
+  fun sorted3_tupled (x,y,z) = z >= y andalso y >= x
+
+  val t1 = sorted3_tupled (7,9,11)
+
+  (* 使用currying *)
+  val sorted3 = fn x => fn y => fn z => z >= y andalso y >= x
+  (* soretd3 x = fn y => fn z => ... *)
+
+  (* 使用currying才能这样调用  *)
+  val t2 = (sorted3 7) 9 11
+  val t3 = sorted3 7 9 11 
+
+  (* 语法糖 *)
+  fun sorted3_nicer x y z = z >= y andalso y >= x 
+  val t4 = sorted3_nicer 7 9 11
+#+END_SRC
+
+#+RESULTS:
+: val sorted3_tupled = fn : int * int * int -> bool
+: val t1 = true : bool
+: val sorted3 = fn : int -> int -> int -> bool
+: val t2 = true : bool
+: val t3 = true : bool
+: val sorted3_nicer = fn : int -> int -> int -> bool
+: val t4 = true : bool
+
+  柯里化(currying)相当于定义了fn列表，fn->fn...->fn,函数只能接受一个参数的原因前面已经说过（核心语言简单，方便作为参数和返回值）。
+* Partial Application
+  前面使用柯里化模拟多个参数，但是如果提供的参数太少，就会得到一个等待剩余参数的闭包:
+  - 叫做部分应用
+  - 便利并且有用
+  - 可以用于任意柯里化函数
+
+  避免不必要的函数包装
+#+BEGIN_SRC sml :exports both
+  fun range i j = if i > j then [] else i :: range (i+1) j
+  val r1 = range 3 6
+  val countup = range 1
+  val r2 = countup 6
+#+END_SRC
+
+#+RESULTS:
+: val range = fn : int -> int -> int list
+: val r1 = [3,4,5,6] : int list
+: val countup = fn : int -> int list
+: val r2 = [1,2,3,4,5,6] : int list
+
+  curry and uncurry:
+#+BEGIN_SRC sml :exports both
+  fun other_curry f x y = f y x
+  fun curry f x y = f (x,y)
+  fun uncurry f (x,y) = f x y
+#+END_SRC
+
+#+RESULTS:
+: val other_curry = fn : ('a -> 'b -> 'c) -> 'b -> 'a -> 'c
+: val curry = fn : ('a * 'b -> 'c) -> 'a -> 'b -> 'c
+: val uncurry = fn : ('a -> 'b -> 'c) -> 'a * 'b -> 'c
+
+* Mutable References
+  当你的模型需要更新状态的情况下，要用到mutation。
+
+  新类型：
+  *t ref* 是引用类型，t是一个类型。
+
+  新表达式:
+  - *ref e* 创建一个引用，初始内容为e
+  - *e1 := e2* 更新内容
+  - *!e* 获取内容
+#+BEGIN_SRC sml :exports both
+  val x = ref 42
+  val y = ref 42
+  val z = x
+  val _ = x := 43
+  val w = (!y) + (!z)
+#+END_SRC
+
+#+RESULTS:
+: val x = ref 43 : int ref
+: val y = ref 42 : int ref
+: val z = ref 43 : int ref
+: val w = 85 : int
+  x,z指向同样的内容。
+
+* Closure用法:回调
+  回调是常用的:当一个库接受一个函数用于当一个事件发生时侯调用，例如:
+  - 当一个按键按下，鼠标移动，数据到达时。
+  - 当程序进入某种状态时
+  #+BEGIN_SRC sml :exports both
+    (* server  *)
+    val cbs : (int -> unit) list ref = ref []
+
+    fun onKeyEvent f = cbs := f :: (!cbs)
+
+    fun onEvent i = 
+        let fun loop fs = 
+                case fs of 
+                    [] => ()
+                  | f::fs' => (f i; loop fs')
+        in
+            loop(!cbs)
+        end
+
+    (* client *)
+    val timesPressed = ref 0 
+    val _ = onKeyEvent (fn _ => 
+                           timesPressed := (!timesPressed) + 1)
+
+    fun printIfPressed i = 
+        onKeyEvent (fn j => 
+                   if i = j
+                   then print ("you pressed " ^ Int.toString i)
+                   else ())
+
+    val _ = printIfPressed 4
+    val _ = printIfPressed 12
+    val _ = printIfPressed 5;
+    onEvent 3;
+    onEvent 22;
+    onEvent 5;
+    onEvent 4;
+    !timesPressed;
+  #+END_SRC
+
+#+RESULTS:
+#+begin_example
+val cbs = ref [fn,fn,fn,fn] : (int -> unit) list ref
+val onKeyEvent = fn : (int -> unit) -> unit
+val onEvent = fn : int -> unit
+val timesPressed = ref 0 : int ref
+val printIfPressed = fn : int -> unit
+val it = () : unit
+val it = () : unit
+you pressed 5val it = () : unit
+you pressed 4val it = () : unit
+val it = 4 : int
+#+end_example
+
+* ADT with Closures
+  closures可以实现Abstract Data Types:
+  - 在一个record中存放多个函数
+  - 这些函数共享同样的私有数据
+  - 私有数据可变或不可变
+  - 感觉像对象，表示OOP和函数式编程有很多相似的地方
+
+#+BEGIN_SRC sml :exports both
+  datatype set = S of { insert : int -> set,
+                        member : int -> bool,
+                        size : unit -> int }
+
+  val empty_set = 
+      let 
+          fun make_set xs = 
+              let 
+                  fun contains i = List.exists (fn j => i=j) xs 
+              in
+                  S { insert = fn i => if contains i 
+                                       then make_set xs 
+                                       else make_set (i::xs),
+                    member = contains,
+                    size = fn () => length xs}
+              end 
+      in
+          make_set [] 
+      end
+
+  (* example client *)
+  fun use_sets () = 
+      let val S s1 = empty_set
+          val S s2 = (#insert s1) 34
+          val S s3 = (#insert s2) 34
+          val S s4 = #insert s3 19
+      in
+          if (#member s4) 42 
+          then 99 
+          else if (#member s4) 19 
+          then 17 + (#size s3) ()
+          else 0
+      end
+   val v = use_sets()
+#+END_SRC
+
+#+RESULTS:
+: datatype set = S of {insert:int -> set, member:int -> bool, size:unit -> int}
+: val empty_set = S {insert=fn,member=fn,size=fn} : set
+: val use_sets = fn : unit -> int
+: val v = 18 : int
+
+* 没有closure的情况
+  Higher-order programming,在没有closure的编程语言中也可以实现:
+  - OOP中(如java)使用单方法接口
+  - 过程式语言中(如c)使用显式传递环境变量
+
+* 为什么学习通用PL概念？
+  什么是最好的编程语言？ 就像什么是最好的车？ 什么是最好的鞋子？一样，没有最好的某一个，针对不同目的有不同的设计。比如小型车、SUV、MPV，虽然都能完成车的功能，但针对不同的用途有不同的设计。
+  
+  - 一个好的机械工程师有一些特长，但也要理解汽车怎么工作
+    - 内饰是不重要的(语法)
+  - 一个好的机械工程师知道汽车怎么工作，怎么让它们充分发挥作用，并知道怎么设计更好的
+    - 没有最爱的汽车或最爱的编程语言
+  - 学习汽车的组成，最好找一个老款的，模型比较简单，最新的会添加很多功能，比较复杂。
+
+
+
