@@ -1,0 +1,176 @@
+#+TITLE: programming-languages学习笔记--第5部分
+#+DESCRIPTION: 本节学习内容:racket语言，延迟求值，宏
+#+KEYWORDS: programming, racket
+#+CATEGORIES: 编程
+#+LANGUAGE: zh-CN
+
+* Racket语法
+  Racket有非常简单的语法,term如下:
+  - an atom, 例如#t, #f, 34, "hi", null, x,...
+  - a special form, 例如define, lambda, if
+    - 可以使用宏定义自己的特殊形式
+  - 括号里的包含的term序列:(t1 t2 ... tn)
+    - 如果t1是一个特殊形式，序列的语义是特殊的
+    - 否则是一个函数调用
+
+  使用括号把程序文本转换为程序的树形表示非常方便和清晰。   
+
+  Racket中每个括号都是有意义的,不能随意添加或删除。
+  (e)表示无参数调用e, ((e))表示无参数调用e,并无参数调用其返回结果。
+* 动态类型
+  Racket使用动态类型。
+
+  只有执行到错误代码的时候才能发现错误。
+
+* cond
+  只有#f是false,其余都是true
+#+BEGIN_SRC racket
+  (define (sum3 xs)
+    (cond [(null? xs) 0]
+          [(number? (car xs)) (+ (car xs) (sum3 (cdr xs)))]
+          [#t (+ (sum3 (car xs)) (sum3 (cdr xs)))]))
+
+  (sum3 (list (list 3 4 5) 3 (list 3 (list 3 3))))
+#+END_SRC
+
+* 局部绑定
+  有4种方法：
+  - let
+  - let*
+  - letrec
+  - define
+
+  3种let表达式可以出现在任何地方.
+
+  let表达式在表达式之前就全部求值。
+#+BEGIN_SRC racket
+  (define (silly-double x)
+    (let ([x (+ x 3)]
+          [y (+ x 2)])                    ;这里的x为参数x
+      (+ x y -5)))                        ;等价于(+ x x)
+#+END_SRC
+
+  let*表达式在每个之前的绑定环境中求值。
+#+BEGIN_SRC racket
+  (define (silly-double x)
+    (let* ([x (+ x 3)]
+           [y (+ x 2)])                   ;这里的x为+3的x,在上一个绑定的环境中
+      (+ x y -8)))
+#+END_SRC
+
+  letrec表达式在包括所有绑定的环境中求值。用于相互递归，但是表达式还是按照顺序求值。
+#+BEGIN_SRC racket
+  (define (silly-triplee x)
+    (letrec ([y (+ x 2)]
+             [f (lambda (z) (+ z y w x))]
+             [w (+ x 7)])
+      (f -9)))
+#+END_SRC
+
+  在函数体的开头使用define,语义和letrec一样。
+
+* Toplevel Bindings
+  文件中的绑定和letrec类似:
+  - 和ML一样，可以引用之前的绑定
+  - 和ML不同，也可以引用之后的绑定
+  - 但是只能在函数体中引用后面的绑定
+    - 因为绑定是按顺序求值的
+    - 使用未定义变量是一个错误
+  - 和ML不同，不能在模块中定义相同的变量两次。
+
+* 使用set!
+  绑定是可变的，改变绑定:
+  (set! x e)
+#+BEGIN_SRC racket
+  (define b 3)
+  (define f (lambda (x) (* 1 (+ x b))))
+  (define c (+ b 4))
+  (set! b 5)
+  (define z (f 4))
+  (define w c)
+#+END_SRC
+  执行上面的程序，z绑定为9，因为set!改变了b绑定的值。c绑定为7,因为c绑定的值是在set! b前求值的。
+
+  如果不想让f中的b受可能会改变的影响，则在改变发生前制造一个copy.
+#+BEGIN_SRC racket
+  (define f
+    (let ([b b])
+      (lambda (x) (* 1 (+ x b)))))
+#+END_SRC
+  racket中，绑定只能在定义的模块中使用set!修改它。
+
+* cons
+  cons制造一个pair,并不是list。以null结尾的嵌套pair是一个list.
+  
+  cons的单元格是不可变的，mcons可以改变。
+#+BEGIN_SRC racket
+  (define x (cons 14 null))
+  (define y x)
+  (set! x (cons 42 null))
+  (define fourteen (car y))
+#+END_SRC
+  set!并没有修改x指向的旧pair的内容。使用mcons和set-macr!和set-mcdr!可以修改pair内容。
+
+* 延迟求值和Thunks
+  一个语言构造的关键语义问题是它的子表达式是何时求值的。比如在racket中:
+  (e1 e2 ... en) 将在求值函数体之前求值函数参数e2, ..., en. (lambda (...) ...) 直到调用函数的时候才求值函数体。注意特殊形式的求值顺序有所不同，如if.
+
+  使用(lambda () e)达到延迟求值的目的，thunk the argument的意思就是使用(lambda () e)代替e.
+
+* 使用Delay和Force进行惰性求值
+  惰性求值,按需调用，promises. 用于避免重复计算。
+
+#+BEGIN_SRC racket
+  (define (my-delay th)
+    (mcons #f th))
+
+  (define (my-force p)
+    (if (mcar p)
+        (mcdr p)
+        (begin (set-mcar! p #t)
+               (set-mcdr! p ((mcdr p)))
+               (mcdr p))))
+
+#+END_SRC
+
+* streams
+  流是无限序列值。实现流的方法有很多种，最简单的可以把流作为一个thunk,调用的时候产生一个pair,序列中的第一个元素，表示流的第二个到无限个元素的thunk。
+#+BEGIN_SRC racket
+  (define ones (lambda () (cons 1 ones)))
+#+END_SRC
+
+* Memoization
+  与惰性求值相关的惯用法，并且不适用thunks的是memoization.必须避免副作用，并且同样的参数返回同样的结果。
+  
+ #+BEGIN_SRC racket
+   (define (fibonacci1 x)
+     (if (or (= x 1) (= x 2))
+         1
+         (+ (fibonacci1 (- x 1))
+            (fibonacci1 (- x 2)))))
+ #+END_SRC
+
+* Macros
+  宏定义为语言增加新的语法。它描述了如何把新语法转换为语言已有的不同的语法。宏系统是定义宏的语言。macro use只是使用一个之前定义的宏。macro use的语义是用宏定义的合适语法替换宏。这个过程经常叫作宏展开，因为它很常用，但并不需要语法转换产生大量代码。
+
+  关键点是宏展开在我们学过的任何东西之前：在类型检查之前，在编译之前，在求值之前。因此宏可以在任何地方展开，比如函数体内，条件分支内等。
+
+  宏系统用于添加语法糖，等同于用语法糖扩展现有语言。
+
+  宏定义，宏展开。
+
+  Tokenization
+
+#+BEGIN_SRC racket
+  (define-syntax my-if
+    (syntax-rules (then else)
+      [(my-if e1 then e2 else e3)
+       (if e1 e2 e3)]))
+  (my-if 2 then 3 else 4)
+#+END_SRC
+
+   卫生宏，宏展开后的变量名与展开位置的变量名不会混淆。靠词法作用域。
+
+
+
+

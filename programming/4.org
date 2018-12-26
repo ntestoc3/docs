@@ -1,0 +1,99 @@
+#+TITLE: programming-languages学习笔记--第4部分
+#+DESCRIPTION: 本节学习内容:类型推导、相互递归、ML的模块系统、等效性
+#+KEYWORDS: programming, sml
+#+CATEGORIES: 编程
+#+LANGUAGE: zh-CN
+
+* 什么是类型推导
+  编译时的类型检查，防止一些错误。静态类型语言的特性。
+
+  动态类型语言较少或没有做这些检查，有可能在运行时将一个数字认为一个函数。
+
+  ML,Java,C#,Scala,C,C++都是静态类型的，所有的绑定在编译时确定。类型检查器在编译时确定接受还是拒绝一个程序。与此相对，Racket,Ruby和Python是动态类型语言,意味着绑定的类型不是提前确定的,比如绑定x为42，然后把x认为是字符串将导致运行时错误。
+
+  ML是隐式类型，不需要写出类型,这很方便(要考虑是否让代码更方便或更难读)。
+
+* ML类型推导
+  关键步骤：
+  - 按顺序确定类型绑定
+    - 除了相互递归
+    - 不能使用延迟绑定(later bindings):没有类型检查
+  - 对每个val或fun绑定:
+    - 分析所有必要事实(约束)的定义
+    - 例如:如果遇到x>0,那么x必须是int类型。
+    - 如果无法确定所有事实正确(过度约束)，则类型错误。
+  - 之后，对任何未约束的类型使用类型变量(例如'a)
+    - 例如未使用的函数参数可以是任意类型。
+  - 最后，强制进行值约束
+  
+
+  值约束:只有val绑定中的表达式是一个值或变量时，才会给一个变量多态类型。防止下面的错误
+#+BEGIN_SRC sml :exports both
+  val r = ref NONE
+  val _ = r := SOME "hi"
+  val i = 1 + valOf(!r)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+stdIn:1.6-1.18 Warning: type vars not generalized because of
+   value restriction are instantiated to dummy types (X1,X2,...)
+stdIn:5.5-5.23 Error: operator and operand do not agree [tycon mismatch]
+  operator domain: ?.X1 option ref * ?.X1 option
+  operand:         ?.X1 option ref * string option
+  in expression:
+    r := SOME "hi"
+stdIn:6.5-6.22 Error: operator and operand do not agree [overload conflict]
+  operator domain: [+ ty] * [+ ty]
+  operand:         [+ ty] * ?.X1
+  in expression:
+#+end_example
+   在上面的例子中ref NONE调用函数ref,它不是一个值或变量，因此给出警告。可以使用类型注释指定r为非多态类型:
+#+BEGIN_SRC sml :exports both
+  val r:int option ref = ref NONE
+  val _ = r := SOME 3
+  val i = 1 + valOf(!r)
+#+END_SRC
+
+#+RESULTS:
+: val r = ref (SOME 3) : int option ref
+: val i = 4 : int
+
+* 相互递归
+  f调用g,g调用f. 使用and关键字
+
+#+BEGIN_EXAMPLE
+  fun f1 p1 = e1 
+  and f2 p2 = e2
+  and f3 p3 = e3
+#+END_EXAMPLE
+
+   实现状态机的理想方式
+* 用模块管理命名空间
+  模块可以用来隐藏绑定和类型
+  
+  在ML中，模块不是表达式，不能在函数中定义，保存为tuples,作为参数传递等。
+
+  使用open打开命名空间,常用于在模块外面测试一个模块。
+
+* 签名
+  模块的类型就是签名。可以用来隐藏一些细节。
+  
+  signature SIGNAME =
+  sig types-for-bindings end
+
+* 等效实现
+  改进/修改一个库不会破坏客户端。知道客户服从由ML的签名强制执行的抽象边界，是非常宝贵的。
+
+  使用限制性签名的好处:以后修改实现代码的时候，不需要检查所有客户端。
+
+  通过使用更严格的接口，可以使用更多不同的等效实现，因为客户端无法区别差异。
+
+  两个函数是等效的，当在同样的环境下，给它们同样的参数:
+  - 产生相同的结果
+  - 拥有相同的终止行为
+  - 以同样的方式改变同样的(客户端可见)内存
+  - 做同样的输入/输出
+  - 产生相同的异常
+
+

@@ -1,0 +1,64 @@
+#+TITLE: programming-languages学习
+#+DESCRIPTION: clojure学习，对照racket
+#+KEYWORDS: programming, clojure
+#+CATEGORIES: 编程
+#+LANGUAGE: zh-CN
+
+* clojure语法
+  clojure没有解释器，只有编译，执行，返回结果。
+
+  字符串，数字，字符，true,false,nil和关键字求值为它们自身
+
+
+** special forms
+   (*def* /symbol/ /doc-string?/ /init?/)
+
+   (*if* /test/ /then/ /else?/)
+
+   (*do* /expr*/)
+   
+   (*let* [ /binding*/] /expr*/)
+
+   (*quote* /form/)
+
+   (*var* /symbol/)
+
+   (*fn* /name?/ [ /params*/]  /expr*/)
+   (*fn* /name?/ ([ /params*/] /expr*/)+)
+
+   (*fn* /name?/ [ /param*/] /condition-map?/ /expr*/)
+   (*fn* /name?/ ([ /param*/] /condition-map?/ /expr*)+)
+
+   (*loop* [ /binding*/] /expr*/)
+
+   (*recur* /expr*/)
+
+   (*throw* /expr/)
+   
+   (*try* /expr*/ /catch-clause*/ /finally-clause?/)
+   
+   (*monitor-enter* /expr/)
+   (*monitor-exit* /expr/)
+
+   java互操作的special forms: *.*, *new*, *set!*
+   Var相关的special forms: *set!*
+
+** 与clisp或scheme的不同
+   nil表示无，不局限于lists或sequences,可以是任何类型的值。
+   (not= nil '())
+
+   *let* 按顺序绑定,等同于racket的let*。
+   (fn name [args]...)引用自身，letfn用于递归引用。
+   
+   引用后面的绑定需要先declare声明
+
+* 变化和并发
+  程序如果不能正确的工作，再快也没有意义。
+
+  - 时间：相对事件发生的时刻
+  - 状态：某个实体的属性在某一个时间点的快照
+  - 一致性：随着时间的推移，逻辑实体发现了一个共同的状态。
+
+  3个概念形成了clojure模型的状态管理和变化
+
+
