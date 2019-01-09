@@ -1,0 +1,144 @@
+#+TITLE: programming-languages学习
+#+DESCRIPTION: clojure实现一个小型的编程语言
+#+KEYWORDS: programming, clojure
+#+CATEGORIES: 编程
+#+LANGUAGE: zh-CN
+
+* 最简单的算术表达式解析
+  实现加减表达式,最原始版本:
+#+BEGIN_SRC clojure :results pp :exports both -n
+  (ns my.eval1)
+  (defn Const [i] (list :Const i))
+  (defn Negate [e] (list :Negate e))
+  (defn Add [e1 e2] (list :Add e1 e2))
+  (defn Multiply [e1 e2] (list :Multiply e1 e2))
+
+  (defn Const? [x] (= (first x) :Const))
+  (defn Negate? [x] (= (first x) :Negate))
+  (defn Add? [x] (= (first x) :Add))
+  (defn Multiply? [x] (= (first x) :Multiply))
+
+  (defn Const-int [e] (first (rest e)))
+  (defn Negate-e [e] (first (rest e)))
+  (defn Add-e1 [e] (first (rest e)))
+  (defn Add-e2 [e] (first (rest (rest e))))
+  (defn Multiply-e1 [e] (first (rest e)))
+  (defn Multiply-e2 [e] (first (rest (rest e))))
+
+  (defn eval-exp
+    [e]
+    (cond
+      (Const? e) e
+      (Negate? e) (Const (- (Const-int (eval-exp (Negate-e e)))))
+      (Add? e) (let [v1 (Const-int (eval-exp (Add-e1 e)))
+                     v2 (Const-int (eval-exp (Add-e2 e)))]
+                 (Const (+ v1 v2)))
+      (Multiply? e) (let [v1 (Const-int (eval-exp (Multiply-e1 e)))
+                          v2 (Const-int (eval-exp (Multiply-e2 e)))]
+                      (Const (* v1 v2)))
+      :else (throw (Exception. "eval-exp expected an exp"))))
+
+  (eval-exp (Add (Const 9) (Const 1)))
+#+END_SRC
+
+#+RESULTS:
+: (:Const 10)
+
+  使用map方式实现：
+#+BEGIN_SRC clojure :results pp :exports both -n
+  (ns my.eval2)
+  (defn const [val] {:type ::const :val val})
+  (defn negate [e] {:type ::negate :e e})
+  (defn add [e1 e2] {:type ::add :e1 e1 :e2 e2})
+  (defn multiply [e1 e2] {:type ::multiply :e1 e1 :e2 e2})
+
+  (defn eval-exp [e]
+    (case (:type e)
+      ::const e
+      ::negate (const (- (:val (eval-exp (:e e)))))
+      ::add (const (let [v1 (:val (eval-exp (:e1 e)))
+                         v2 (:val (eval-exp (:e2 e)))]
+                     (+ v1 v2)))
+      ::multiply (const (let [v1 (:val (eval-exp (:e1 e)))
+                              v2 (:val (eval-exp (:e2 e)))]
+                          (* v1 v2)))
+      (throw (Exception. "eval-exp expected an exp"))))
+
+  (eval-exp (multiply (const 8) (negate (const 2))))
+#+END_SRC
+
+#+RESULTS:
+: {:type :my.eval2/const, :val -16}
+
+  使用multi method实现,更大的灵活性:
+#+BEGIN_SRC clojure :results pp :exports both -n
+  (ns my.eval3)
+  (defn const [val] {:type ::const :val val})
+  (defn negate [e] {:type ::negate :e e})
+  (defn add [e1 e2] {:type ::add :e1 e1 :e2 e2})
+  (defn multiply [e1 e2] {:type ::multiply :e1 e1 :e2 e2})
+
+  (defmulti my-eval :type)
+  (defmethod my-eval ::const [e] e)
+  (defmethod my-eval ::negate [{:keys [e]}]
+    (const (- (:val (my-eval e)))))
+  (defmethod my-eval ::add [{:keys [e1 e2]}]
+    (const (+ (:val (my-eval e1))
+              (:val (my-eval e2)))))
+  (defmethod my-eval ::multiply [{:keys [e1 e2]}]
+    (const (* (:val (my-eval e1))
+              (:val (my-eval e2)))))
+  (defmethod my-eval :default [_]
+    (throw (Exception. "eval-exp expected an exp")))
+
+  (my-eval (multiply (const 8) (negate (const 3))))
+#+END_SRC
+
+#+RESULTS:
+: {:type :my.eval3/const, :val -24}
+
+   使用record实现：
+#+BEGIN_SRC clojure :results pp :exports both -n
+  (ns my.eval4)
+
+  (defprotocol Evalable
+    (my-eval2 [e]))
+
+  (defrecord Const [val]
+    Evalable
+    (my-eval2 [e] e))
+
+  (defrecord Negate [e]
+    Evalable
+    (my-eval2 [e] (Const. (- (:val (my-eval2 (:e e)))))))
+
+  (defrecord Add [e1 e2]
+    Evalable
+    (my-eval2 [e] (Const. (+ (:val (my-eval2 (:e1 e)))
+                            (:val (my-eval2 (:e2 e)))))))
+
+  (defrecord Multiply [e1 e2]
+    Evalable
+    (my-eval2 [e] (Const. (* (:val (my-eval2 (:e1 e)))
+                            (:val (my-eval2 (:e2 e)))))))
+
+  (extend-type Object
+    Evalable
+    (my-eval2 [_] (throw (Exception. "eval-exp expected an exp"))))
+
+  (prn (my-eval2 (Add. (Const. 9) (Negate. (Const. 3)))))
+#+END_SRC
+
+#+RESULTS:
+: #my.eval4.Const{:val 6}
+: nil
+
+* 实现MUPL语言
+  支持变量，函数
+
+#+INCLUDE: "~/myrepl/src/myrepl/lang.clj" src clojure -n
+
+  用record实现，包装函数用于减少改动，用record实现的话，堆栈中异常定位比较麻烦，
+  无法直接定位到出错的地方:
+#+INCLUDE: "~/myrepl/src/myrepl/lang2.clj" src clojure -n
+

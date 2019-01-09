@@ -1,0 +1,81 @@
+#+TITLE: programming-languages学习笔记--第10部分
+#+DESCRIPTION: 本节学习内容: subtyping
+#+KEYWORDS: programming
+#+CATEGORIES: 编程
+#+LANGUAGE: zh-CN
+
+* Subtyping
+  - 伪代码表示：
+  创建record: {f1=e1, f2=e2, ..., fn=en},
+  字段访问:e.f,字段更新:e1.f=e2
+
+  基本的类型系统：
+  {f1:t1, f2:t2, ..., fn:tn}
+
+  a:{x:real, y:real}与类型
+  b:{x:real, y:real, color:string}不同，但是可以在接受第一种类型的地方使用第二种类型。
+  让使用a的地方用b代替通过类型检查。就是Subtyping。
+
+* 子类关系  
+  保持subtyping独立，一个编程语言已经有很多类型规则，不去修改它们，只增加subtyping。
+  用t1 <: t2(类型间的二元关系)表示t1是t2的子类型，如果e拥有类型t1并且t1 <: t2,则e也拥有类型t2。
+
+  如果t1 <: t2,则t1类型的任何值都可以用在t2可以使用的地方。
+
+* Depth Subtyping
+  深度子类化：
+  {center:{x:real,y:real,z:real}, r:rael} <:
+  {center:{x:real,y:real}, r:real}
+  如果要让这个子类化成立，则需要添加规则，
+  if ta <: tb then {f1:t1,...,f:ta,...,fn:tn} <:
+  {f1:t1,...,f:tb,...,fn:tn}
+  但是它破坏了可靠性(soundness)，可以访问不存在的字段。
+
+  如果字段是不可变的，则深度子类化是可靠的，只能从3个里面选2个：setters,depth subtyping, soundness。
+
+* Function Subtyping
+  函数类型，在higher-order函数中，参数可以用使用t3->t4代替t1->t2么？
+
+  函数返回值是可以的：
+  if ta <: tb then t->ta <: t->tb
+  函数返回值是协变(covariant)的。
+
+  函数参数不可以:
+  ta <: tb 不允许 ta->t <: tb->t,
+  相反的情况可以：
+  if tb <: ta then ta->t <: tb->t，
+  参数类型是逆变(contravariant)的。
+
+  可以综合起来：
+  if t3 <: t1 and t2 <: t4, then t1->t2 <: t3->t4。
+  参数是逆边，返回值是协变。
+
+* OOP中的子类化
+  子类关系就是子类型关系。
+
+  一个对象就是包含字段和方法的记录：
+  - 可变字段
+  - 方法是可变函数，并且可以访问self
+
+  可以设计一个像记录类型的类型系统:
+  - 子类型可以有额外的字段和方法
+  - 覆盖方法需要逆变参数和协变返回值，与函数子类化相似。
+  
+
+  self/this是特殊的，虽然是函数参数，但它是协变的。子类中的方法只能使用子类可用的字段和方法。
+
+* 泛型对比子类化
+  在ML中：
+  #+begin_src sml
+    fun compose (g,h) = fn x => g (h x)
+    (* val compose = fn : ('a -> 'b) * ('c -> 'a) -> 'c -> 'b *)
+  #+end_src
+  子类化不适合这样的操作，作为容器不方便。
+  需要做downcast,并且需要运行时开销。
+  
+  子类化适用于表示几何，GUI等。
+
+* Bounded Polymorphism
+  结合泛型和子类化，就是有界多态。
+
+  

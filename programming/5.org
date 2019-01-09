@@ -137,10 +137,16 @@
   流是无限序列值。实现流的方法有很多种，最简单的可以把流作为一个thunk,调用的时候产生一个pair,序列中的第一个元素，表示流的第二个到无限个元素的thunk。
 #+BEGIN_SRC racket
   (define ones (lambda () (cons 1 ones)))
+
+  (define nats
+    (letrec ([f (lambda (x) (cons x (lambda () (f (+ x 1)))))])
+      (lambda () (f 1))))
+  (car (nats))
+  (car ((cdr (nats))))
 #+END_SRC
 
 * Memoization
-  与惰性求值相关的惯用法，并且不适用thunks的是memoization.必须避免副作用，并且同样的参数返回同样的结果。
+  与惰性求值相关的惯用法，并且不直接使用thunks的是memoization.必须避免副作用，并且同样的参数返回同样的结果。
   
  #+BEGIN_SRC racket
    (define (fibonacci1 x)
@@ -148,6 +154,22 @@
          1
          (+ (fibonacci1 (- x 1))
             (fibonacci1 (- x 2)))))
+
+   ;; memo
+   (define fibonacci
+     (letrec ([memo null]
+              [f (lambda (x)
+                   (let ([ans (assoc x memo)])
+                     (if ans
+                         (cdr ans)
+                         (let ([new-ans (if (or (= x 1) (= x 2))
+                                            1
+                                            (+ (f (- x 1))
+                                               (f (- x 2))))])
+                           (begin
+                             (set! memo (cons (cons x new-ans) memo))
+                             new-ans)))))])
+       f))
  #+END_SRC
 
 * Macros

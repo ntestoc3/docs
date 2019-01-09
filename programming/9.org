@@ -1,0 +1,302 @@
+#+TITLE: programming-languages学习笔记--第9部分
+#+DESCRIPTION: 本节学习内容: 分解问题
+#+KEYWORDS: programming, ruby, sml
+#+CATEGORIES: 编程
+#+LANGUAGE: zh-CN
+
+* 过程分解与面向对象分解
+  - 函数式编程中,把程序分解为完成一些操作的函数。
+  - 面向对象编程中，把程序分解为类，这些类为某些类型的数据提供行为。
+  
+  这两种分解方式完全相反。
+  哪种方式更好看个人口味，但也依赖于你希望如何修改/扩展软件。对于包含两个或更多参数的操作，函数和模式匹配是很简明的，但是OOP可以使用double dispatch达到目的。
+
+  示例,实现一个表达式的小型语言：
+  |        | eval | toString | hasZero | ... |
+  | Int    |      |          |         |     |
+  | Add    |      |          |         |     |
+  | Negate |      |          |         |     |
+  | ...    |      |          |         |     |
+
+  ML(函数式)中的标准方法：
+  - 为每种变量(每一行)定义一个数据类型和一个构造器(在动态类型语言中，我们不会给数据类型一个名字，但是仍然按这样的方式考虑问题。)
+  - 为每个操作定义一个函数
+  - 以每列一个函数的方式填写表格,每个函数中针对每个单元格有一个分支;如果列中的多项相同，可以组合分支(使用通配模式)。
+
+  这个方法就是过程分解：对问题分解为每个操作有一个对应的过程。
+#+begin_src sml
+  datatype exp =
+           Int of int
+           | Negate of exp
+           | Add of exp * exp
+
+  exception BadResult of string
+
+  fun add_values (v1, v2) =
+      case (v1, v2) of
+          (Int i, Int j) => Int (i+j)
+       |  _ => raise BadResult "non-ints in addition"
+
+  fun eval e =
+      case e of
+          Int _ => e
+       |  Negate e1 => (case eval e1 of
+                            Int i => Int (~i)
+                          | _ => raise BadResult "non-int in negation")
+       | Add(e1, e2) => add_values(eval e1, eval e2)
+
+  fun toString e =
+      case e of
+          Int i => Int.toString i
+        | Negate e1 => "-(" ^ (toString e1) ^ ")"
+        | Add(e1,e2) => "(" ^ (toString e1) ^ ")" ^ " + "
+                        ^ (toString e2) ^ ")"
+
+  fun hasZero e =
+      case e of
+          Int i => i=0
+        | Negate e1 => hasZero e1
+        | Add(e1, e2) => (hasZero e1) orelse (hasZero e2)
+#+end_src
+
+   OO的标准方法：
+   - 为表达式定义一个类，为每个操作(每一列)定义一个抽象方法，(ruby中不需要，动态类型中不需要指定抽象方法)
+   - 为每个数据变量(每一行)定义一个子类
+   - 在每个子类中，为每个操作定义一个方法。
+   
+   这个方法是面向数据的分解：把问题分解为每个数据变量对应一个类。
+#+begin_src ruby
+  class Exp
+    # 可以在这里写默认实现或辅助函数
+  end
+
+  class Value < Exp
+  end
+
+  class Int < Value
+    attr_reader :i
+    def initialize i
+      @i = i
+    end
+
+    def eval
+      self
+    end
+
+    def toString
+      @i.to_s
+    end
+
+    def hasZero
+      @i == 0
+    end
+  end
+
+  class Add < Exp
+    attr_reader :e1, :e2
+    def initialize(e1, e2)
+      @e1 = e1
+      @e2 = e2
+    end
+
+    def eval
+      Int.new(@e1.eval.i + @e2.eval.i)
+    end
+
+    def toString
+      "(" + @e1.toString + " + " + @e2.toString + ")"
+    end
+
+    def hasZero
+      @e1.hasZero || @e2.hasZero
+    end
+  end
+
+  class Negate < Exp
+    attr_reader :e
+    def initialize(e)
+      @e = e
+    end
+
+    def eval
+      Int.new(-@e.eval.i)
+    end
+
+    def toString
+      "-(" + @e.toString + ")"
+    end
+
+    def hasZero
+      @e.hasZero
+    end
+  end
+#+end_src
+
+   总结：
+   - FP和OOP总是按照相反的方式做同样的事，按行或按列组织程序
+   - 哪个更自然取决你做什么(解释器或GUI)或者个人爱好
+   - 代码布局是重要的，但是没有完美的方法，因为软件有许多种结构维度。工具，IDE可以给你多种视图(行/列)
+   
+   面向对象首先关心的是对象，然后是针对这些对象有哪些操作。
+   函数式首先关心的是操作，然后是这些操作针对哪些数据。
+* 扩展代码：添加操作或变体(variant)
+  可扩展性,扩展上一节的程序：
+  |        | eval | toString | hasZero | noNegConstants |
+  | Int    |      |          |         |                |
+  | Add    |      |          |         |                |
+  | Negate |      |          |         |                |
+  | Mult   |      |          |         |                |
+
+  函数式方式:
+  - 容易添加新的操作(增加一个函数)，比如noNegConstants,不需要修改以前的代码
+  - 添加新的变体需要修改旧函数，但是ML类型检查会给出todo list(在原先的代码没有通用匹配的情况下),
+  
+  OOP方式：
+  - 容易添加新的变体(增加一个类即可)
+  - 添加一个新的操作需要修改旧的类，但是Java的类型检查会在原先的代码没有默认方法的情况下给出todo list
+  
+
+  不管是函数式还是OOP，都可以提前计划方便以后新增变体或操作。
+  函数式用High-order function添加新类型, OOP使用双派发(double-dispatch)模式添加新操作。
+
+  未来是难以预测的，我们或许不知道需要什么样的扩展，或者两种扩展都需要。
+  可扩展性是一把双刃剑：
+  - 以后不需要修改就可以代码重用
+  - 但需要写更多的原始代码
+  - 原始代码更难理解或修改
+  - 一些语言机制让代码更难扩展，比如ML的模块隐藏了数据类型;Java的final阻止子类化/覆盖。
+
+* 使用函数式分解二元方法
+  使Add支持更多操作:
+  |          | Int | String | Rational |
+  | Int      |     |        |          |
+  | String   |     |        |          |
+  | Rational |     |        |          |
+
+  函数式中使用case表达式就解决了，因为函数首先关心的就是操作，针对不同数据之间的操作用case表达式。
+ #+begin_src sml
+   datatype exp = Add of exp * exp 
+               | Int of int
+               | Negate of exp
+               | String of string
+               | Rational of int * int
+                                    
+   fun add_values (v1, v2) =
+       case (v1, v2) of
+           (Int i, Int j) => Int (i+j)
+         | (Int i, String s) => String(Int.toString i ^ s)
+         | (Int i, Rational(j,k)) => Rational(i*k+j,k)
+         | (String s, Int i) => String(s ^ Int.toString i)
+         | (String s1, String s2) => String(s1 ^ s2)
+         | (String s, Rational(i,j)) => String(s ^ Int.toString i ^ "/"
+                                               ^ Int.toString j)
+         | (Rational _, Int _) => add_values(v2, v1)
+         | (Rational(i, j), String s) => String(Int.toString i ^ "/"
+                                                ^ Int.toString j ^ s)
+         | (Rational(a,b), Rational(c,d)) => Rational(a*d+b*c, b*d)
+         | _ => raise BadResult "non-values passed to add_values"
+ #+end_src
+
+* 双重派发
+  OOP更关心对象，一个消息发送过来，不知道怎么处理，让对象自己去处理，就是双重派发，也可以做到三重、四重(一个操作作用于三个、四个对象)，但要写很多方法。
+#+begin_src ruby
+  class Add < Exp
+    def eval
+      e1.eval.add_values e2.eval
+    end
+  end
+
+  class Int < Value
+    # OOP中的双重派发
+    def add_values v
+      v.addInt self
+    end
+    def addInt v
+      Int.new(v.i + i)
+    end
+  end
+#+end_src
+
+* Multimethods
+  也叫多重派发。
+  针对不同对象的同一操作，用同一个方法名，自动调用对应的方法。
+
+  ruby动态类型，方法不能重名，因此没有多重方法。Java和C++是静态类型，一个类可以有重名方法，但在编译时确定了参数的类型,叫做静态重载。
+
+  许多OOP语言有multimethods。比如Clojure中的multimethod和Scala中的trait。
+
+* 多重继承
+  单继承的类层次是一个树，多重继承的类层次更复杂。
+
+* Mixins
+  mixin是一个方法集合，没有实例。含有mixins的语言的类大都只能有一个父类，但可以包含多个mixin.
+
+#+begin_src ruby
+  module Doubler
+    def double
+      self + self
+    end
+  end
+
+  class Pt
+    attr_accessor :x, :y
+    include Doubler
+    def + other
+      ans = Pt.new
+      ans.x = self.x + other.x
+      ans.y = self.y + other.y
+      ans
+    end
+  end
+
+  class String
+    include Doubler
+  end
+#+end_src
+
+  Ruby中最大的两个mixins是Comparable和Enumerable。
+#+begin_src ruby
+  class MyRange
+    include Enumerable
+    def initialize(low, high)
+      @low = low
+      @high = high
+    end
+
+    # 支持low>high的情况
+    def each
+      if @low <= @high
+        i=@low
+        while i <= @high
+          yield i
+          i=i+1
+        end
+      else
+        i=@low
+        while i >= @high
+          yield i
+          i=i-1
+        end
+      end
+    end
+  end
+
+  for i in MyRange.new(3,1)
+    for j in MyRange.new(1,2)
+      print (i+j).to_s + " "
+    end
+    puts
+  end
+
+  MyRange.new(3,1).each { |x|
+    MyRange.new(1,2).each { |y|
+      print (x+y).to_s + " " }
+    puts }
+#+end_src
+
+* 接口
+  静态类型中的类是一个类型。
+  接口也是一个类型，但不是一个类.
+  
+* 抽象方法
+  静态类型中支持覆盖的方法就是抽象方法。

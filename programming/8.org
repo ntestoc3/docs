@@ -1,0 +1,303 @@
+#+TITLE: programming-languages学习笔记--第8部分
+#+DESCRIPTION: 本节学习内容: ruby基础
+#+KEYWORDS: programming, ruby
+#+CATEGORIES: 编程
+#+LANGUAGE: zh-CN
+#+OPTIONS: ^:{}
+
+* ruby
+   纯面向对象：所有的值都是对象(包括数字)
+  - 基于类：每个对象都有一个类
+  - 动态类型
+  - 方便的反射：运行时查看对象
+  - 动态特性：可以在执行时修改对象或类
+  - 块和库鼓励很多闭包惯用法
+  - 脚本语言的语法，作用域规则和语义
+  
+   |               | 动态类型 | 静态类型 |
+   | 函数式(FP)     | Racket   | SML      |
+   | 面向对象(OOP) | Ruby     | Java,等  |
+ 
+* 类与对象
+  在ruby中:
+  - 所有的值都引用一个对象
+  - 对象通过方法调用交互，也叫做消息传递
+  - 每个对象有它自己的(私有)状态,只有对象的方法可以直接访问或更新这个状态。
+  - 每个对象都是一个类的实例
+  - 对象的类决定了对象的行为。类包含决定对象如何处理消息的方法定义。
+
+* 对象，类，方法，变量
+#+BEGIN_SRC ruby
+  class Name 
+    def method_name1 method_args1
+      #expression1
+    end
+    def method_name2 method_args2
+      #expression2
+    end
+    #...
+  end
+#+END_SRC
+
+   创建和使用对象:
+   - ClassName.new 创建一个类ClassName的新对象
+   - e.m求值e为一个对象，然后调用它的方法m,也可以称为发送消息m,也可以写为e.m()
+   
+   变量：
+   - 方法可以使用局部变量，以字母开头
+   - 不需要声明
+   - 变量是可变的 x=e
+   - 变量可以用在"top-level"或REPL中
+   - 变量的内容总是引用一个对象，因为所有的值都是对象
+   
+   self:
+   - 在Ruby中，self是一个特殊的关键字/变量
+   - 引用当前对象:执行方法的对象
+   - 可以调用同一个对象的其它方法:self.m(...),可以用语法糖: m(...)
+   - 可以使用self传递/返回/存储整个对象
+   - 与Java/C#/C++的this相同
+
+* 对象状态
+  状态只能通过对象的方法直接访问。
+
+  状态由实例变量组成(也叫做字段):
+  - 语法：以@开头，比如@foo
+  - 使用=赋值
+  - 使用一个未赋值的状态不会产生错误，产生一个nil对象。
+  
+  别名：
+  - 创建一个对象返回一个新对象的引用,与其它对象的状态不同
+  - 赋值=创建一个别名，别名表示同一个对象，拥有同样的状态。
+
+  初始化：
+  - 方法名为initialize的方法是特殊的：
+    - 在一个新对象的new返回前调用
+    - new的参数传递给initialize
+    - 用于创建对象不变式
+    - 类似于Java/C#等的构造器
+  - 在initialize中初始化实例变量是好的编程风格
+    - 只是一个惯例
+    - 在Ruby中，同一个类的不同实例可以拥有不同的实例变量
+
+  类变量：
+  - 整个类共享的变量
+  - 类的所有实例都可以访问
+  - 称为类变量，使用@@开头，比如@@foo
+  - 不常用，但有时很有用
+  
+  类常量：
+  - 语法：以大写字母开头，比如Foo
+  - 最好不要去改变
+  - 在类C的外面可以通过C::Foo访问
+
+  类方法(Java/C#中的静态方法)：
+  - 语法： def self.method (args) ... end
+  - 使用: C.method(args)
+  - 属于类的一部分，不属于某个具体实例
+  
+* Visibility
+  谁能访问什么.
+
+  对象状态总是私有的。可以通过getters/setters访问器公开访问。
+  访问器语法糖:
+  - 只定义getters: attr_reader :foo, :bar, ...
+  - 定义getters和setters: attr_accessor :foo, :bar, ...
+  - getters/setters只是方法
+
+  方法的可见性：private, protected,public。方法默认是public。
+#+BEGIN_SRC ruby
+  class Foo
+    # 默认方法是public
+
+    protected
+    # 现在定义方法是protected
+
+    private
+    # 现在定义方法是private
+  end
+#+END_SRC
+
+  如果一个方法m是私有的,则只能通过m或m(args)调用，不能用self.m调用
+
+* 万物皆对象
+#+BEGIN_SRC ruby
+  3 + 4
+  # 等价于
+  3.+(4)
+
+  3.abs
+  3.nonzero?
+  x = if 3 > 4 then 5 else -5 end
+  x.abs
+  nil                             # nil是一个对象
+  0.nil?
+  nil.nil?
+  if nil then puts "A" else puts "B" end # nil被认为是false
+#+END_SRC  
+
+  所有的代码都是方法：
+  - 你定义的所有方法都是一个类的一部分
+  - top-level方法(文件中或REPL)只是添加到Object类
+  - 因为你定义的所有类都是Object的子类，因此都继承top-level方法
+  - 因此可以在程序的任何地方调用这些方法
+  - 除非一个类定义了同名方法覆盖了这个方法。
+  
+  所有的对象都有methods,class方法。可以用来在运行时查找一个对象可以做什么，并作出反应，叫做reflection(反射)。
+
+  类是一个Class对象。
+
+* 类定义是动态的
+  Ruby程序可以在运行时添加修改方法。
+
+  动态特性引起一些有趣的语义问题，比如：
+  - 首先创建一个类C的实例，x = C.new
+  - 现在修改C中的方法m
+  - 现在调用x.m
+  在Ruby中，调用的是新定义的方法。
+
+* Duck Typing
+  #+begin_src ruby
+    def mirror_update pt
+      pt.x = pt.x * -1
+    end
+  #+end_src
+  这个方法接受一个对象，只要这个对象有x的访问器函数就可以正常调用，不管pt是哪个类的实例。
+
+* 数组
+  get:a[i], set:a[i]=e
+  
+  Ruby的数组非常灵活。
+
+* Blocks
+  等同于closures。
+
+  可以对任何消息传递0或一个block。语法: {e}, {|x| e},{|x,y| e},也可以用begin...end替换{}。
+
+  使用yield调用block:
+#+BEGIN_SRC ruby
+  def silly a
+    puts (yield a)
+    (yield a) + (yield 42)
+  end
+  public :silly
+  5.silly(5){ |b| b*2 }
+#+END_SRC
+
+* Procs
+  blocks不是对象，只能yield。但可以将blocks转换为真实的closures。
+  闭包是Proc类的实例，使用方法call调用。
+
+  Object对象的lambda方法，接受一个block,返回一个Proc对象。
+#+begin_src ruby :exports both
+  inc = lambda {|x| x + 1}
+  inc.call 5
+#+end_src
+
+#+RESULTS:
+: 6
+
+* Hashes和Ranges
+  哈希表{}
+#+begin_src ruby :exports both :results output
+  h = {"SML" => 7, "Racket" => 12, "Ruby" => 42}
+  puts h
+  h2 = {:sml => 7, :racket => 12, :ruby => 42}
+  puts h2
+#+end_src
+
+#+RESULTS:
+: {"SML"=>7, "Racket"=>12, "Ruby"=>42}
+: {:sml=>7, :racket=>12, :ruby=>42}
+
+  Ranges: 1..100,
+  这里也是duck typing:
+#+BEGIN_SRC ruby :exports both :results output
+  def foo a
+    a.count { |x| x*x < 50 }
+  end
+
+  puts foo [3,5,7,9]
+  puts foo (3..9)
+#+END_SRC
+
+#+RESULTS:
+: 3
+: 5
+    
+* Subclassing
+  子类，继承和覆盖。Ruby中不会继承父类的字段定义，因为实例变量不是类定义的一部分，每个对象实例创建它自己的实例变量。
+
+  Ruby中不指定superclass,父类就是Object,superclass影响类定义：
+  - 继承superclass的所有方法,可以根据需要override方法定义
+  - 每个对象的class方法返回这个对象的类，一个类也是一个对象，这个类的class就是Class。
+  - 每个对象有is_a?和instance_of?方法，instance_of?只有在对象是某个类的实例的情况下才为真，子类不为真。
+#+BEGIN_SRC ruby
+  class ColorPoint < Point
+  end
+#+END_SRC
+
+* 覆盖和动态派发
+  至此，对象与闭包并没有很大的不同:
+  - 对象的多个方法与闭包的"call me"
+  - 对象的显式实例变量与函数定义时的环境
+  - 继承避免辅助函数或代码copy
+  - 简单的覆盖只是替换方法
+
+  但是有一个最大的不同：覆盖可以在父类中定义方法调用子类中的方法。
+  这个语义有很多种叫法：dynamic dispatch,late binding,virtual method calls.
+
+* 方法查找的精确定义
+  查找一些东西经常是一个编程语言语义的本质。例如在ML和Racket中，查找变量的规则导致了词法作用域和函数闭包的正确处理。在Racket中，3中不同形式的let表达式表示了在子表达式中查找变量的不同语义。
+
+  在Ruby中，方法和块(blocks)中的局部变量查找规则与ML和Racket并无不同，除了使用前不需要预先声明。 但是实例变量，类变量和方法的查找依赖绑定到self的对象，并且self是特殊的。
+
+  在任何环境中，self映射为一些对象，当前执行方法的这个对象。查找实例变量@x时，使用绑定到self的对象，每个对象有它自己的状态，我们使用self的状态。查找类变量@@x时，使用绑定到self.class的对象的状态去代替。查找方法m更复杂一点，求值一个方法调用e0.m(e1,...,en):
+  - 求值e0,e1,...,en到值，也就是对象obj0,obj1,...,objn。
+  - 获得obj0的class,每个对象在运行时知道它自己的类.可以认为class是obj0的状态的一部分。
+  - 假定obj0是类A，如果A中定义了m,则调用这个方法。否则递归查找A的父类中是否定义方法m.如果找不到方法m，则引发"method missing"错误。在Ruby中，将调用method_missing方法，并重新开始在A和它的父类中查找method_missing,但是大部分类没有定义method_missing,并且Object定义了它，调用它会引发我们希望的错误。
+  - 现在找到了要调用的方法，如果这个方法有形式参数x1,x2,...,xn,则求值环境映射为x1到obj1,x2到obj2等。但是这里有一个OOP与函数式编程的本质不同：我们在环境中总是拥有self。求值方法体时，self绑定到obj0,即接收消息的这个对象。
+  
+
+  上面描述的在被调用者内部绑定self的含义等同于"late-binding","dynamic dispatch","virtual method calls"。它是Ruby和其它OOP语言语义的核心。它表示当方法m的内部在self上调用一个方法(比如self.some_method 34或some_method 34)时，我们使用obj0的类来解析方法some_method。不一定是我们正在执行的方法的类。
+
+  这个语义还有几点：
+  - Ruby的mixins增加了查找规则的复杂度，所以上面的规则忽略了mixins
+  - 这个语义比ML/Racket的函数调用要复杂。但是复杂并不意味着它更好或更差，仅表示语言定义有更多需要描述的细节。这个语义显然对很多人都很有用。
+  - Java/C#有更复杂的方法查找规则。它们有这里描述的动态派发，但是它们也有静态重载(static overloading)，一个类可以有接受不同类型(或个数)的参数的多个重名方法。
+
+* 动态派发对比闭包
+  #+begin_src sml
+    fun even x = if x = 0 then true else odd (x - 1)
+    and odd x = if x = 0 then false else even (x - 1)
+
+    (* 不会修改odd的行为,因为odd在定义的环境中查找even *)
+    fun even x = false
+
+    (* 用一个更优化的版本替换even，odd是无法获得这个优化实现的好处 *)
+    fun even x = (x mod 2) = 0
+  #+end_src
+  
+  在OOP中，可以使用子类化，覆盖，和动态派发，通过覆盖even来修改odd的行为：
+#+begin_src ruby
+  class A
+    def even x
+      if x == 0 then true else odd(x-1) end
+    end
+
+    def odd x
+      if x == 0 then false else even(x-1) end
+    end
+  end
+
+  class B < A
+    def even x #也会修改B的odd!
+      x % 2 == 0
+    end
+  end
+#+end_src
+   现在执行B.new.odd 17会执行的更快，因为odd会调用B中的even--因为绑定到环境中的self。但它也有缺点，不能只看一个类A就知道调用代码有什么样的行为。在子类中，如果有人覆盖了even而不知道它会修改odd的行为怎么办？
+
+  基本上，对可能被覆盖的方法的任何调用都要非常仔细地考虑。通常最好用不能被覆盖的私有方法。 然而，覆盖和动态派发是面向对象编程与函数式编程最大的区别。
+
+
+
