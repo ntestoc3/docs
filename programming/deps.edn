@@ -1,0 +1,7 @@
+{
+ :deps {
+        org.clojure/clojure {:mvn/version "1.10.0"},
+        clj-http {:mvn/version "3.9.1"}, ; http
+        reaver {:mvn/version "0.1.2"}  ; jsoup, html parser
+        }
+}

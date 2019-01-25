@@ -1,0 +1,102 @@
+
+
+对新加、修改的内容格外注意，测试逻辑是否正确实现。
+在出错的地方很容易再犯错。
+
+* Introduction
+  先获得完整的功能列表，然后像攻击者一样思考，设定一个目的，想达到什么样的效果。
+  设定目标优先级。
+
+* Encrypted Pastebin
+^FLAG^a810c4f2706848f951204afdf6b9a46458a76cfd50b16d9d0cabca04a25c1e71$FLAG$
+Traceback (most recent call last):
+  File "./main.py", line 69, in index
+    post = json.loads(decryptLink(postCt).decode('utf8'))
+  File "./common.py", line 46, in decryptLink
+    data = b64d(data)
+  File "./common.py", line 11, in <lambda>
+    b64d = lambda x: base64.decodestring(x.replace('~', '=').replace('!', '/').replace('-', '+'))
+  File "/usr/local/lib/python2.7/base64.py", line 328, in decodestring
+    return binascii.a2b_base64(s)
+Error: Incorrect padding
+
+Traceback (most recent call last):
+  File "./main.py", line 69, in index
+    post = json.loads(decryptLink(postCt).decode('utf8'))
+  File "./common.py", line 48, in decryptLink
+    cipher = AES.new(staticKey, AES.MODE_CBC, iv)
+  File "/usr/local/lib/python2.7/site-packages/Crypto/Cipher/AES.py", line 95, in new
+    return AESCipher(key, *args, **kwargs)
+  File "/usr/local/lib/python2.7/site-packages/Crypto/Cipher/AES.py", line 59, in __init__
+    blockalgo.BlockAlgo.__init__(self, _AES, key, *args, **kwargs)
+  File "/usr/local/lib/python2.7/site-packages/Crypto/Cipher/blockalgo.py", line 141, in __init__
+    self._cipher = factory.new(key, *args, **kwargs)
+ValueError: IV must be 16 bytes long
+
+
+* File Inclusion
+  php warning: include() failed to open stream
+  
+  
+* Photo Gallery
+Database: level5                       
+Table: photos                                          
+[3 entries]   
++----+------------------+--------+------------------------------------------------------------------+
+| id | title            | parent | filename                    |   
++----+------------------+--------+------------------------------------------------------------------+
+| 1  | Utterly adorable | 1      | files/adorable.jpg                    |
+| 2  | Purrfect         | 1      | files/purrfect.jpg                    |
+| 3  | Invisible        | 1      | 81e78101746ae78a93868a529b3ad715136761e29594d8f750953f0880981d9c |
++----+------------------+--------+------------------------------------------------------------------+
+
+Database: level5         
+Table: albums                    
+[1 entry]               
++----+---------+                          
+| id | title   |        
++----+---------+ 
+| 1  | Kittens |
+
+* Cody's First Blog
+  http://35.190.155.168:5001/ee2b7eb1b5/?page=http://www.bing.com/test
+ <b>Notice</b>:  Undefined variable: title in <b>/app/index.php</b> on line <b>30</b><br />
+</h1>
+		<br />
+<b>Warning</b>:  include(): php_network_getaddresses: getaddrinfo failed: Name or service not known in <b>/app/index.php</b> on line <b>21</b><br />
+<br />
+<b>Warning</b>:  include(http://www.bing.com/test.php): failed to open stream: php_network_getaddresses: getaddrinfo failed: Name or service not known in <b>/app/index.php</b> on line <b>21</b><br />
+<br />
+<b>Warning</b>:  include(): Failed opening 'http://www.bing.com/test.php' for inclusion (include_path='.:/usr/share/php:/usr/share/pear') in <b>/app/index.php</b> on line <b>21</b><br /> 
+
+* ticketastic
+Database: level7
+Table: users
+[7 entries]
++----+--------------------+----------+
+| id | username           | password |
++----+--------------------+----------+
+Database: level7                                                         
+Table: tickets                                                                                            
+[6 entries]                           
+| id | body | reply | title |
+|----+------+-------+-------|
+
+Set-Cookie: session_level7a=eyJ1c2VyIjoiYWRtaW4ifQ.XEWTDQ.7EGcPbqmlMaWqOlUVIAD4QT7JM8; HttpOnly; Path=/
+Set-Cookie: session_level7a=eyJ1c2VyIjoidGVzdCJ9.XEWfwA.s8cUQJXpGfV1F01NOR7T22STv9w; HttpOnly; Path=/
+.XEWP0A.nn_-oniMwm-noZ9GotoDfkwiBlE
+
+(first admin-ss)
+"eyJ1c2VyIjoiYWRtaW4ifQ.XEW9vg.vpLMmHy5dpSPG-IVgoM_SqB5wHU"
+
+(String. (base64/decode (first admin-ss)))
+"{\"user\":\"admin\"}�[�ྒ̘|�v�����?J�y�u"
+eyJ1c2VyIjoidXRlc3QifQ.XEW-Ng.JRi_2pOjIp9oFzAJMFLIeAQUbO4
+flask的session第一个点前面的是payload,base64编码，如果以点开头，再用zlib解压。
+中间是过期时间，最后是最重要的校验，用APP_KEY加密，根据payload和过期时间计算，进行校验。
+
+* sequence
+  integer-sequence-learning
+
+* Model E1337 - Rolling Code Lock
+  /admin /get-config

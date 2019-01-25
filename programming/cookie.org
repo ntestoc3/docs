@@ -1,0 +1,187 @@
+#+TITLE: Apache HttpComponents中的cookie匹配策略
+#+DESCRIPTION: 在clojure中使用clj-http抓取网页，提交自定义cookie时总是不能发送，研究一下HttpClient中Cookie的工作方式。
+#+KEYWORDS: programming, clojure
+#+CATEGORIES: 编程
+#+LANGUAGE: zh-CN
+
+* 简介
+  在clojure中使用clj-http抓取网页时，需要提交自定义cookie,总是不能成功发送，研究一下HttpClient中Cookie的工作方式。
+
+  clj-http包装了HttpClient库，对于请求页面时发回的状态可以自动处理，但是需要自己往请求中添加cookie时总是失败，折腾了很久，了解了HttpClient处理Cookie的细节，关于HttpClient中HTTP的状态管理，可以参考HttpClient的[[https://hc.apache.org/httpcomponents-client-ga/tutorial/html/statemgmt.html][官方指南]]
+
+* 示例
+  从bing获取搜索结果，代码如下：
+
+  deps.edn文件如下:
+#+include: "./deps.edn" src clojure
+
+  实际代码：
+#+begin_src clojure
+  (require '[clj-http.client :as client])
+  (require '[clj-http.cookies :as cookies])
+  (require '[reaver :as html])
+
+  (def ua "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:33.0) Gecko/20120101 Firefox/33.0")
+  (def cs (cookies/cookie-store))
+
+  (def http-header {:headers {"user-agent" ua
+                              "accept-charset" "utf-8"}
+                    :proxy-host "localhost" ;本地代理,用于测试
+                    :proxy-port 8080
+                    :cookie-store cs
+                    :insecure? true})
+
+  (defn search
+    "搜索关键字kw，返回[{:url :title :desc} ...]
+    kw 为搜索关键字
+    opt为附加选项:
+    :option http请求额外参数
+    :max-page 查询的最大页数,默认为3"
+    [kw & [opt]]
+    (let [base-url "https://www.bing.com"
+          option (get opt :option {})
+          max-page (get opt :max-page 3)]
+      (loop [page 1
+             url (str base-url "/search?q=" kw) ;这里没有用url编码，仅为演示用
+             result []]
+        (if (> page max-page)
+          result
+          (let [doc (-> (client/get url
+                                    (merge http-header option))
+                        :body
+                        html/parse)
+                entrys (html/extract-from doc "li.b_algo"
+                                          [:url :title :desc]
+                                          "h2 > a" (html/attr "href")
+                                          "h2 > a" html/text
+                                          "div > p" html/text)
+                r (apply conj result entrys)]
+            (if-let [next-path (-> (html/select doc "a.sb_pagn" )
+                                   (html/attr "href"))]
+              (recur (inc page)
+                     (str base-url next-path)
+                     r)
+              r))))))
+
+  (def googles (search "google" {:max-page 3}))
+  (count googles)
+  ;; => 30
+  (first googles)
+  ;; => {:url "http://www.google.cn/", :title "Google", :desc "2016-12-8 · google.com.hk 请收藏我们的网址"}
+#+end_src
+
+  可以看到一页返回10个结果，如果要返回50(bing设置里最大结果数量)，则要设置cookie项：
+  "SRCHHPGUSR" 的值为： "NRSLT=50"
+  
+  下面添加cookie：
+#+begin_src clojure
+  (cookies/clear-cookies cs) ;清除之前请求产生的cookies
+
+  (def usr-cookie (cookies/to-basic-client-cookie
+                   ["SRCHHPGUSR" {
+                                  :discard false
+                                  :domain ".bing.com",
+                                  :path "/",
+                                  :value "NRSLT=50"
+                                  :expires (java.util.Date. 9000 1 1)
+                                  }]))
+  (cookies/add-cookie cs usr-cookie)
+
+  (cookies/get-cookies cs)
+  ;; => {"SRCHHPGUSR" {:discard false, :domain ".bing.com", :expires #inst "10900-01-31T16:00:00.000-00:00", :path "/", :secure false, :value "NRSLT=50", :version 0}}
+
+  (def googles (search "google" {:max-page 3}))
+  (count googles)
+  ;; => 30
+#+end_src
+  可以看到cookie并没有生效，在代理中也可以看到第一次请求时并没有带上添加的cookie。原因是HttpClient默认的Cookie specifications不会把.bing.com匹配到www.bing.com。
+
+  下面Api用法可以参考[[https://hc.apache.org/httpcomponents-client-ga/httpclient/apidocs/org/apache/http/cookie/CookieOrigin.html][CookieOrigin API文档]]和[[https://hc.apache.org/httpcomponents-client-ga/httpclient/apidocs/org/apache/http/impl/cookie/package-summary.html][cookie package文档]]:
+#+begin_src clojure
+  (import org.apache.http.cookie.CookieOrigin)
+  (import (org.apache.http.impl.cookie DefaultCookieSpec
+                                       RFC6265LaxSpec
+                                       RFC6265StrictSpec
+                                       RFC2965Spec
+                                       RFC2109Spec
+                                       NetscapeDraftSpec
+                                       IgnoreSpec
+                                       BasicClientCookie2))
+
+  (def bing-co (CookieOrigin. "www.bing.com" 80 "/" false))
+
+  (def match-spec #(.match %1 usr-cookie bing-co))
+  (def default-spec (DefaultCookieSpec.))
+  (match-spec default-spec)
+  ;; => false
+  (def rfc6265-lax-spec (RFC6265LaxSpec.))
+  (match-spec rfc6265-lax-spec)
+  ;; => false
+  (def rfc6265-strict-spec (RFC6265StrictSpec.))
+  (match-spec rfc6265-strict-spec)
+  ;; => false
+  (def rfc2965-spec (RFC2965Spec.))
+  (match-spec rfc2965-spec)
+  ;; => true
+  (def rfc2109-spec (RFC2109Spec.))
+  (match-spec rfc2109-spec)
+  ;; => true
+  (def netscape-spec (NetscapeDraftSpec.))
+  (match-spec netscape-spec)
+  ;; => true
+
+  ;; 通过测试的几个spec,可以看到，默认只有rfc2*和netscape可以匹配.bing.com
+  ;; 下面设置cookie的attr
+  (str usr-cookie)
+  ;; => "[version: 0][name: SRCHHPGUSR][value: NRSLT=50][domain: .bing.com][path: /][expiry: Mon Feb 01 00:00:00 CST 10900]"
+  (.setAttribute usr-cookie BasicClientCookie2/DOMAIN_ATTR "true")
+  (str usr-cookie)
+  ;; => "[version: 0][name: SRCHHPGUSR][value: NRSLT=50][domain: .bing.com][path: /][expiry: Mon Feb 01 00:00:00 CST 10900]"
+  ;; 从表面上看不出设置了attr的区别，只有匹配时不同：
+  (.getAttribute usr-cookie "domain") ; DOMAIN_ATTR的值是"domain"
+  ;; => "true"
+
+  (def match-spec #(.match %1 usr-cookie bing-co))
+  (match-spec default-spec)
+  ;; => true
+  (match-spec rfc6265-lax-spec)
+  ;; => true
+  (match-spec rfc6265-strict-spec)
+  ;; => true
+  (match-spec rfc2965-spec)
+  ;; => true
+  (match-spec rfc2109-spec)
+  ;; => true
+  (match-spec netscape-spec)
+  ;; => true
+
+  ;;再看搜索结果
+  (cookies/clear-cookies cs)
+  (cookies/add-cookie cs usr-cookie)
+  (def googles (search "google" {:max-page 3}))
+  (count googles)
+  ;; => 78
+  ;; 不是每页都有50条,不过重要的是通过.setAttribute,cookie起作用了
+#+end_src
+  具体原因是rfc6265的规定,参考[[https://stackoverflow.com/questions/29970409/cookies-getting-ignored-in-apache-httpclient-4-4/29972864][overflow的回答]]
+
+  经过上面的测试，也可以在clj-http中使用netscape的cookie-policy来达到目的,因为standard属于rfc6265-lax,默认也不会匹配:
+#+begin_src clojure
+  (def usr-cookie (cookies/to-basic-client-cookie
+                   ["SRCHHPGUSR" {
+                                  :discard false
+                                  :domain ".bing.com",
+                                  :path "/",
+                                  :value "NRSLT=50"
+                                  :expires (java.util.Date. 9000 1 1)
+                                  }]))
+
+  (cookies/clear-cookies cs)
+  (cookies/add-cookie cs usr-cookie)
+  (def googles (search "google" {:max-page 3
+                                 :option {:cookie-policy :netscape}}))
+  (count googles)
+  ;; => 78
+#+end_src
+  但是这种方法是不推荐的，还是用.setAttribute比较好。
+
