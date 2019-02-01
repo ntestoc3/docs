@@ -1,0 +1,45 @@
+
+* Clojure Web Stack
+  Luminus作为一个Leiningen模板，用来针对不同类型的项目生成样板。
+  组合各种不同的模块。只需要添加自己应用程序相关的逻辑。
+
+  模板的核心是Ring/Compojure,Ring提供处理HTTP请求和响应的API,Compojure提供路由功能，用来绑定请求处理函数到指定的URL。
+
+  Ring的目标是抽象HTTP的细节到一个简洁和模块化的API。Ring程序由4部分组成：handler,request,response,middleware。
+
+  middleware处理器是一个函数，它接受一个已有的handler和一些额外参数，然后返回一个包含一些添加的行为的新handler。
+
+  Adapter在handler和底层HTTP协议之间，它们提供任何必须的配置，比如端口映射，处理解析HTTP请求到request maps和从handler response maps构造HTTP响应。Adapter允许Ring运行在不同的容器上，不如Jetty和Http Kit。
+
+  Ring处理HTTP,Compojure用来结构化路由。
+
+  添加HTML模板，输入验证等功能。
+
+* Luminus架构
+  dev prod test 不同的配置(依赖库、编译选项)，不同的代码
+
+  大部分框架使用MVC模式区分应用逻辑。Luminus把相关的代码放在同一个命名空间下。
+  
+  传统风格MVC程序包含的命名空间： 
+  - core 管理HTTP服务器的整个生存周期
+  - handler 聚合所有routes的根处理器,处理请求和响应
+  - routes routes命名空间用来响应处理不同类型的客户端请求
+  - db 用于应用的数据模型和持久层。
+  - layout 生成应用布局的通用逻辑
+  - middleware 包含我们想在应用中使用的任何自定义中间件
+
+  core命名空间用来启动应用。包含-main函数，应用的入口点。-表示编译为Java方法，:gen-class用来表示编译java类。 start-app和stop-app函数用来控制应用的生命周期。
+
+  handler命名空间用来聚集所有路由，并使用任何必要的中间件包装它们。也包含了init和destroy函数，用来处理需要在启动或停止时需要运行的代码。 
+  app state用来聚合路由，并使用wrap-base函数应用通用的中间件。
+  
+  middleware命名空间保留给用来修改请求和响应的任何包装函数。middleware的主要目的是集中处理一些通用任务，比如CSRF保护。
+
+  路由请求，routes包包含不同命名空间的路由。在不同的命名空间创建分离的路由，然后在handler命名空间中使用compojure的routes宏聚合起来。routes宏组合所有路由到一个集合，并用来创建最终的handler。注意第一个被匹配的route的handler会被调用。route/not-found路由会匹配所有。
+
+  应用模型，模型描述了应用存储的数据和数据元素之间的关系。db包包含了模型和持久层。
+
+  应用布局，layout命名空间提供布局和其它常用的页面元素。
+  
+    
+
