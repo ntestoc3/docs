@@ -1,4 +1,3 @@
-
 * Clojure Web Stack
   Luminus作为一个Leiningen模板，用来针对不同类型的项目生成样板。
   组合各种不同的模块。只需要添加自己应用程序相关的逻辑。
@@ -32,14 +31,406 @@
 
   handler命名空间用来聚集所有路由，并使用任何必要的中间件包装它们。也包含了init和destroy函数，用来处理需要在启动或停止时需要运行的代码。 
   app state用来聚合路由，并使用wrap-base函数应用通用的中间件。
+  handler [request] 是同步handler，handler [request respond raise]是异步handler,调用代码在adapter中:proxy-handler,async-proxy-handler。
   
-  middleware命名空间保留给用来修改请求和响应的任何包装函数。middleware的主要目的是集中处理一些通用任务，比如CSRF保护。
+  middleware命名空间保留给用来修改请求和响应的任何包装函数。middleware的主要目的是集中处理一些通用任务，比如CSRF保护。返回一个handler闭包,顺序很重要。middleware中对request或response的处理也涉及调用顺序:比如处理requeset为(fn [request] (handler (process request))),处理response为(fn [request] (-> (handler request) process)。调用顺序很重要。
+
 
   路由请求，routes包包含不同命名空间的路由。在不同的命名空间创建分离的路由，然后在handler命名空间中使用compojure的routes宏聚合起来。routes宏组合所有路由到一个集合，并用来创建最终的handler。注意第一个被匹配的route的handler会被调用。route/not-found路由会匹配所有。
 
   应用模型，模型描述了应用存储的数据和数据元素之间的关系。db包包含了模型和持久层。
 
-  应用布局，layout命名空间提供布局和其它常用的页面元素。
-  
-    
+  应用布局，layout命名空间提供视觉布局和其它常用的页面元素。使用喜欢的html模板库，例如Hiccup,Enlive,Selmer。不要把业务逻辑和视图混在一块。
 
+* SPA
+  https://en.wikipedia.org/wiki/Single-page_application
+  客户端处理所有表示逻辑。
+
+  figwheel必须用浏览器打开应用,才能正确连接,js在浏览器中执行。
+
+  server只需要services功能，REST API等方式提供服务，多种客户端可以自行实现视觉布局。
+
+  构造应用，先考虑数据模型。理解工作流和用例。
+
+  服务端处理业务逻辑，并提供API给客户端。客户端管理UI和客户端的应用程序状态。
+
+* Websockets
+  实时消息，双向通信，可以server端push。ajax是客户端poll。
+
+  websockets需要服务端和客户端都提供支持。浏览器API是标准的，但每个服务端都有不同的处理方法。
+  
+  客户端注意处理csrf token.
+
+  sente自动处理websocket和ajax同步调用。
+
+* db   
+  sql异常的捕获
+(defmacro query [fn-name & args]
+  `(try
+     (~fn-name ~@args)
+     (catch Exception e#
+       (throw (or (.getCause e#) e#)))))
+
+(query query-fn {:column-name "value"})
+  
+* reagent
+    每个components都可以"reactive",它们都有一个render函数。
+    render函数把input data转换为hiccup(HTML)。
+    render函数会在input data改变时重新运行。
+    form-2形式如[tim-comp]会创建一个components
+
+    两种类型的input data: 
+    - props 函数参数,如greet中的name。reactjs中的概念。如果parent component重绘，则props被改变的子component会被重绘。
+    - ratoms 如tim-comp中的se,如果se的值改变，则相关的component会被重绘。
+
+#+begin_src clojure
+  (defn greet
+    [name]
+    [:div "Hello " name])
+
+  (defonce timer (r/atom (js/Date.)))
+  (defonce time-updater (js/setInterval
+                         #(reset! timer (js/Date.)) 1000))
+
+  ;; 创建component的三种方法,不管如何创建,一个component都由一个
+  ;; render函数和一些生命周期方法组成。form-1和form-3创建的component底层结构是相同的，
+  ;; 都是react components。
+  ;;
+  ;; 第一种直接返回template, Hiccup vector
+  ;; 第二种形式的render, ClojureScript function.
+  (defn tim-comp
+    []
+    (let [se (r/atom 0)]
+      (fn []
+        ;;如果是fn形式的render,每次render都会调用整个匿名render函数
+        ;;所以此匿名函数要和外面的函数参数相同
+        ;;外部函数是每个组件实例调用1次。
+        ;;render函数会至少调用1次(初始化时)，可能调用很多次，每次的参数值可能会不同。
+        (println "fn:set time out.")
+        (js/setTimeout #(swap! se inc) 3000)
+        [:div "Seconds Elapsed: " @se])))
+
+  ;;第三种形式的render, React component
+  ;;https://reactjs.org/docs/react-component.html
+  ;;component生命周期 
+  (defn my-component
+    [x y z]
+    (let [;some (local but shared state)
+                                          ;can (go here)
+          x (+ x 2)
+          ]
+      (r/create-class
+       {:display-name "my-component"
+
+        :component-did-mount
+        (fn [this]
+          (println "component did mount"))
+
+        :component-will-unmount
+        (fn [this]
+          (println "component will unmount"))
+
+        :component-did-update
+        (fn [this old-argv]
+          (let [new-argv (rest (r/argv this))]
+            (println "new argv:" new-argv "old:" old-argv)))
+
+        :reagent-render
+        (fn [x y z]
+          [:div (str x " " y " " z)])})
+      ))
+
+
+  ;; 使用with-let宏可以在大多数情况下用form-1的方式代替form-2,并且可以使用可选的finally
+  ;; 子句，当组件不再render时调用。
+  (defn mouse-pos
+    []
+    (r/with-let [pointer (r/atom nil)
+                 handler #(swap! pointer assoc
+                                 :x (.-pageX %)
+                                 :y (.-pageY %))
+                 _ (.addEventListener js/document "mousemove" handler)]
+      @pointer
+      (finally
+        (.removeEventListener js/document "mousemove" handler))))
+
+  (defn tracked-pos
+    []
+    [:div
+     "Pointer moved to: "
+     (str @(r/track mouse-pos))])
+
+  (defn home-page []
+    [:div
+     [:<>
+      [:div "Hello,world"]
+      [tim-comp]
+      [:div "Form-3:"
+       [my-component 1 2 3]]]
+     [tracked-pos]
+     [:h2 "现在是:" (.toLocaleTimeString @timer)]])
+#+end_src
+
+   注意：当re-render是输入的ratom改变引起的，Lifecycle function不会运行。例如component-did-update不会被调用。
+
+   异步render:
+#+begin_src clojure
+  ;;异步渲染
+  (defn timing-wrapper
+    [f]
+    (let [start-time (r/atom nil)
+          render-time (r/atom nil)
+          now #(.now js/Date)
+          start #(reset! start-time (now))
+          stop #(reset! render-time (- (now) @start-time))
+          timed-f (with-meta f
+                    {:component-will-mount start
+                     :component-will-update start
+                     :component-did-mount stop
+                     :component-did-update stop})]
+      (fn []
+        [:div
+         [:p [:em "render time: " @render-time "ms"]]
+         [timed-f]])))
+
+  (def base-color (r/atom {:red 130 :green 160 :blue 120}))
+  (def ncolors (r/atom 20))
+  (def random-colors (r/atom nil))
+
+  (defn to-rgb
+    [{:keys [red green blue]}]
+    (let [hex #(str (if (< % 16) "0")
+                    (-> % js/Math.round (.toString 16)))]
+      (str "#" (hex red) (hex green) (hex blue))))
+
+  (defn tweak-color
+    [{:keys [red green blue]}]
+    (let [rnd #(-> (js/Math.random) (* 256))
+          tweak #(-> % (+ (rnd)) (/ 2) js/Math.floor)]
+      {:red (tweak red) :green (tweak green) :blue (tweak blue)}))
+
+  (defn reset-random-colors
+    [color]
+    (reset! random-colors
+            (repeatedly #(-> color tweak-color to-rgb))))
+
+  (defn color-choose
+    [color-part]
+    [:div.color-slider
+     (name color-part) " " (color-part @base-color)
+     [:input {:type "range" :min 0 :max 255
+              :value (color-part @base-color)
+              :on-change (fn [e]
+                           (swap! base-color assoc
+                                  color-part (-> e .-target .-value int))
+                           (reset-random-colors @base-color))}]])
+
+  (defn ncolors-choose
+    []
+    [:div.color-slider
+     "number of color divs " @ncolors
+     [:input {:type "range" :min 0 :max 500
+              :value @ncolors
+              :on-change #(reset! ncolors (-> % .-target .-value int))}]])
+
+  (defn color-plate
+    [color]
+    [:div.color-plate
+     {:style {:background-color color
+              :width "18em"
+              :height "5em"}}])
+
+  (defn palette
+    []
+    (let [color @base-color
+          n @ncolors]
+      [:div
+       [:p "base color: "]
+       [color-plate (to-rgb color)]
+       [:div.color-samples
+        [:p n " random matching colors:"]
+        (map-indexed (fn [k v]
+                       ^{:key k} [color-plate v])
+                     (take n @random-colors))]]))
+
+  (defn color-demo
+    []
+    (reset-random-colors @base-color)
+    (fn []
+      [:div
+       [:h2 "Matching colors"]
+       [color-choose :red]
+       [color-choose :green]
+       [color-choose :blue]
+       [ncolors-choose]
+       [timing-wrapper palette]]))
+#+end_src
+
+   props, children
+#+begin_src clojurescript
+  ;; props and children
+  (defn my-div
+    []
+    (let [this (r/current-component)]
+      (println this)
+      (into [:div.custom (r/props this)]
+            (r/children this))))
+
+  (defn call-my-div
+    []
+    [:div
+     [my-div "Some text."]
+     [my-div {:style {:font-weight "bold"}}
+      [:p "Some other text in bold."]]])
+#+end_src
+   
+   reagent什么时候重绘组件：
+   - 组件状态修改
+   - props修改
+   - ratom修改
+
+* re-frame
+  re-frame是一个大循环，所有状态数据放在一个统一的app-db.像是一个内存数据库。
+
+  循环中6个事件周期：
+  - Event dispatch
+  - Event handling
+  - Effect handling
+  - Query
+  - View
+  - DOM
+   
+  re-frame程序就像一个reduce,针对注册的事件处理器支持的事件集合进行reduce。
+  但是不纯的事件处理器破坏了这个优点，比如HTTP GET,或者dispatch。
+
+** Event Dispatch
+   当某个事件发生时发送。用户点击按钮，websocket接收一个新信息。
+
+   事件推动re-frame循环处理。re-frame是事件驱动的。
+
+   :on-click rf/dispatch
+
+** Event Handling
+   响应事件，应用决定做什么动作。事件处理器函数计算副作用。更准确地说，它们计算一个effects的描述。这个描述是一个数据结构，声明了世界如何修改(因为这个事件的发生)
+
+   rf/reg-event-db rf/reg-event-fx
+
+   -db处理器接受一个coeffect(即db),并且只返回一个effect.
+   -fx处理器可以接受多个coeffects(一个map),可以返回多个effect(通过map)。
+   -fx允许我们以数据声明的方式返回副作用。
+
+   实际上-db是-fx的interceptor包装
+
+*** coeffects
+    coeffects是当前世界的状态，传递给event handler的数据。
+    reg-event-db只接受一个coeffect,即db。
+
+    每次事件被处理时会创建一个context(map)，这个context包含一个coeffects键。在到达注册的事件处理器之前，context的值被一连串的interceptor的:before函数改变。
+
+    inject-cofx,为当前事件处理器添加coeffects.
+#+begin_src clojure
+  (reg-event-fx
+   :some-id
+   [(inject-cofx :random-int 10) (inject-cofx :now)]
+   (fn [cofx _]
+     ;;可以访问cofx键:random-int :now
+     ))
+#+end_src
+
+  使用reg-cofx 添加cofx handler。
+
+  reg-event-db和reg-event-fx会添加默认的interceptors到interceptor chain开头，第一个是do-fx,用于执行effect handler,第二个是(inject-cofx :db),用于添加:db key到coeffects。
+
+** Effect Handling
+   effect描述(即event handler返回的数据)的具体实现，主要处理数据中的副作用,把非pure部分放到effect handler中处理。effects推动应用程序向前，没有它们的话，应用程序只能永远停留在一个状态，什么也不能做。
+
+   effect handling只是改变了世界的一部分：应用状态。
+#+begin_src clojure
+  (rf/reg-fx
+   :butterfly ;;effect key
+   (fn [value] ;;effect handler
+     ))
+  ;;注意，effect handler的返回值会被忽略。
+
+  ;;包含以下key的effects map会调用reg-fx注册的effect handler,"Flapping"作为value参数传递。
+  {:butterfly "Flapping"}
+#+end_src
+
+** 状态改变引发的连锁反应
+   任何应用状态的改变会触发以下的3部分。
+   4-5-6部分实现了一个公式： v = f(s)
+   View v, function f, app state s.
+   函数f计算当应用程序在给定的应用状态s时，哪个DOM节点v需要显示给用户。也可以说，随着时间推移，当应用状态s改变时，f将重新运行计算新的v，来保持v与当前的s对应。
+   也可以说，随着时间推移，呈现给用户的内容随着应用程序状态的变化而变化。
+
+   第3部分，即Effect Handling改变了应用程序的状态s. 作为响应，4-5-6重新运行f计算显示给用户的新v。
+
+** Query 
+   从app state中提取数据，并提供正确的格式给view函数。
+
+   rf/reg-sub，view函数使用rf/subscribe [:query-id] 订阅query,注意subscribe返回一个ratom。
+
+** View
+   一个或多个view函数(reagent组件)，计算需要显示给用户的UI DOM。
+
+** DOM
+   不需要写任何东西，由Reagent/React处理。最终，浏览器的DOM被改变。
+
+** re-frame Interceptors
+   interceptors可以管理undo,tracing和validation之类的。
+   interceptors实现跟middleware一样的功能。
+
+   在web server中，middleware在一个方向逐步转换一个request,在另一个方向逐步产生一个response。
+   re-frame中，前向步骤逐步创建coeffects(事件处理器的输入)，后向步骤逐步产生effects(事件处理器的输出）。
+
+   处理器也是interceptors。
+
+   实际上reg-event- 产生的就是interceptors链。当dispatch发生时，interceptors链被执行。
+
+   每个链都有如下形式
+   {:id :some-id
+   :before (fn [context]...) ;;返回可能被修改的context
+   :after (fn [context]...)} ;;没有的话返回identity
+   interceptors链就是[{...} {...} {...}]的形式。
+   执行这个链的过程就是:
+   - 创建一个context
+   - 向前迭代这个链，针对每个interceptor调用:before函数
+   - 反方向迭代，调用:after函数。
+
+   这就是事件处理的过程。
+
+** Subscriptions
+  reg-sub用于注册订阅处理器（Subscription handlers）。
+  注册一个处理器并不意味着这个节点会出现在图中，只是定义了当需要这个节点时如何计算。
+
+  app-db是这个图。包含整个应用的状态，状态被修改，view也会改变。
+
+  保持view尽可能简单。
+
+** re-frame application
+   构造一个re-frame app，需要：
+   - 设计app的数据结构(数据层)
+   - 编写reagent view函数(domino 5) ,要尽可能简单
+   - 编写事件处理器函数(控制层 和/或 状态转换层，domino 2)
+   - 编写订阅函数 (query layer, domino 4)
+     
+
+   启动应用状态：
+   - 注册处理器：
+     - subscription (reg-sub)
+     - events (reg-event-db / reg-event-fx)
+     - effects (reg-fx)
+     - coeffects (reg-cofx)
+   - 启动 reagent(views render)
+   - 加载正确的初始数据到app-db,例如merge:
+     - 一些默认值
+     - LocalStorage存储的值
+     - 通过对服务端进行服务调用获得的值
+     
+   只有事件处理器可以修改app-db,这是规则！！！即使是初始化也要在事件处理器中。
+   在view render前的事件可以用dispatch-sync,确保初始化完成。
+
+** ui lib
+   bootstrap使用量第一
+   senmantic ui好像18年后不活跃了
+   
