@@ -1,8 +1,0 @@
-* Tasks
-** TODO 测试，学习
-   [2018-12-12 Wed]
-   [[file:~/docs/data_mining.org::*%E5%80%9F%E5%8A%A9%E8%AF%8A%E6%96%AD%E6%80%A7%E6%89%BE%E5%87%BA%E5%90%A6%E5%AE%9A%E6%80%A7%E6%9C%80%E5%B0%8F%E7%9A%84%E5%81%87%E8%AE%BE][借助诊断性找出否定性最小的假设]]
-   都在配置spacemacs上了
-** TODO 
-   [2018-12-13 Thu]
-   [[file:~/docs/data_mining.org::*%E5%90%AF%E5%8F%91%E6%B3%95][启发法]]
