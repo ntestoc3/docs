@@ -69,6 +69,9 @@ Table: albums
 <br />
 <b>Warning</b>:  include(): Failed opening 'http://www.bing.com/test.php' for inclusion (include_path='.:/usr/share/php:/usr/share/pear') in <b>/app/index.php</b> on line <b>21</b><br /> 
 
+  此页面未作验证
+   /?page=admin.inc
+
 * ticketastic
 Database: level7
 Table: users
@@ -100,3 +103,39 @@ flask的session第一个点前面的是payload,base64编码，如果以点开头
 
 * Model E1337 - Rolling Code Lock
   /admin /get-config
+
+* TempImage
+  上传修改文件路径../../test.php
+  修改png文件内容，php文件头不修改，包含php代码。
+
+
+* jiandan
+  http://ctf5.shiyanbar.com/web/jiandan/index.php
+
+  提交多个Id值，最后一个生效
+  id=unionss&id=test&id=select&submit=Login
+
+  php提交数组：
+  id[0]=unionss&id[1]=test&id[2]=select&submit=Login
+  (string)转换后变为'Array'
+
+   $sql="select * from users limit ".$info['id'].",0";
+
+  test.php
+    $id = (string)$_POST['id'];
+    if(sqliCheck($id))
+
+function sqliCheck($str){
+	if(preg_match("/\\\|,|-|#|=|~|union|like|procedure/i",$str)){
+		return 1;
+	}
+	return 0;
+}
+
+   
+  只能构造--前面部分的，无法改变id的值
+  a:1:{s:2:"id";s: -- 0:"";}
+  可以构造一个字符串，php用数组访问['id']会返回第一个字符,只有一个字符，无法使用。
+
+  现在知道每次解密后的结果，知道加密数据，直接xor就可以获得中间值，不需要oracle,就是miracle啊。
+

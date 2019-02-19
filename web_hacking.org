@@ -25,7 +25,6 @@ right and wrong.
 
   站在开发者的角度思考全局，程序运行环境、架构、与用户或其他程序的交互、代码细节,可以的话检查代码。
 
-
 * Internet
   数据输入输出交流，单向、双向。
 
@@ -85,6 +84,12 @@ right and wrong.
 
   
   
+* HTTP头
+  出现问题的地方：
+  - HOST: 构造错误域名，服务器错误使用,绕过访问限制，通过Host判断是内部测试地址之类的。
+  - X-Forwarded-For: Blind XSS(通过log),  伪造IP,绕过ip过滤，使用本地ip
+  - Referer,User-Agent 都会出问题
 
+    服务端对HTTP头的错误信任，假设错误。
   
-  
+   服务器发送的邮件特别注意。 
