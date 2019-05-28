@@ -20,3 +20,6 @@
 ** API请求的实现
    新建api.clj，根据okex API文档实现需要的API：
 #+INCLUDE: "./src/api.clj" src clojure
+
+** gui界面的实现
+   首先用回调的方式实现gui的数据刷新。

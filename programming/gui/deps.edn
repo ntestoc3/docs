@@ -4,9 +4,7 @@
 
  :deps
  {
-  buddy/buddy-core {:mvn/version "1.5.0"}, ;; 加密功能库
   org.clojure/clojure {:mvn/version "1.10.0"},
-  clojure.java-time {:mvn/version "0.3.2"}, ;; 时间处理
   com.cemerick/url {:mvn/version "0.1.1"}, ;; uri处理
   slingshot {:mvn/version "0.12.2"}, ;; try+ catch+
   com.taoensso/timbre {:mvn/version "4.10.0"}, ;; logging
@@ -14,7 +12,6 @@
   clj-http {:mvn/version "3.9.1"}, ;; http client
   com.rpl/specter {:mvn/version "1.1.2"}, ;; map数据结构查询
   camel-snake-kebab/camel-snake-kebab {:mvn/version "0.4.0"}, ;; 命名转换
-  org.clojure/core.async {:mvn/version "0.4.490"}, ;; 异步
   seesaw {:mvn/version "1.5.0"} ;; GUI框架
   },
 

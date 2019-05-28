@@ -3,28 +3,13 @@
             [clj-http.cookies :as cookies]
             [cheshire.core :as json]
             [cemerick.url :refer [url url-encode]]
-            [buddy.core.mac :as mac]
-            [buddy.core.codecs :as codecs]
-            [buddy.core.codecs.base64 :as base64]
             [taoensso.timbre :as log]
-            [java-time :as time]
             [camel-snake-kebab.core :refer :all])
   (:use [slingshot.slingshot :only [throw+ try+]]
         com.rpl.specter))
 
 (def base-api-host "https://www.okex.com/")
 (def cs (cookies/cookie-store))
-
-(defn base64-enc
-  "base64编码字节到字符串"
-  [bytes]
-  (-> (base64/encode bytes)
-      codecs/bytes->str))
-
-(defn hmac-sha256-enc->base64
-  [data key]
-  (-> (mac/hash data {:key key :alg :hmac+sha256})
-      base64-enc))
 
 (defn snake-case-keys
   "把map m的key转换为snake_string"
@@ -71,9 +56,21 @@
   []
   (api-request "/api/spot/v3/instruments"))
 
+(defn format-depth-data
+  "格式化深度数据"
+  [data]
+  (transform [(multi-path :asks :bids) INDEXED-VALS]
+             (fn [[idx [price amount order-count]]]
+               [idx {:pos idx
+                     :price price
+                     :amount amount
+                     :order-count order-count}])
+             data))
+
 (defn get-spot-instrument-book
   "获取币对深度数据"
   ([instrument-id] (get-spot-instrument-book instrument-id nil))
   ([instrument-id opt]
    (-> (format "/api/spot/v3/instruments/%s/book" instrument-id)
-       (api-request opt))))
+       (api-request opt)
+       format-depth-data)))
