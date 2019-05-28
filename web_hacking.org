@@ -82,6 +82,129 @@ right and wrong.
   SSRF 让服务端发送意外网络请求
   与CSRF类似，不过是发生在服务端
 
+* XML External Entity Vulnerability
+  XXE与程序如何解析XML输入相关,更进一步，与程序如何处理输入XML中的外部实体引用相关。
+  
+  主要是利用DTD访问外部资源。
+
+* Remote Code Execution
+  主要是程序对于用户的输入完全信任，没有进行任何消毒和验证。
+
+* Memory
+  缓冲区溢出
+
+* Sub Domain Takeover
+  - 1.example.com registers on Heroku
+  - 2.example.comcreatesaDNSentrypointingsubdomain.example.comtounicorn457.heroku.com
+  - 3.example.com never claims unicorn457.heroku.com
+  - 4.A malicious person claims unicorn457.heroku.com and replicates example.com
+  - 5.All traffic for sub domain.example.com is directed to a malicious website whichlooks like example.com
+  
+* Race Conditions
+  事务处理问题。
+
+  处理时间有间隔，前后状态不一致。对于延迟处理的服务（任务队列）特别注意，很可能会有竞争问题。
+  
+* Insecure Direct Object References (IODR) 
+  不安全的直接对象引用发生在访问或修改一些对一个对象引用,比如一个文件，数据库记录，账号等。 本来是不能访问的。
+
+  使用其它用户的ID代替当前ID
+
+* OAuth
+  用于验证应用是否能访问你的账户。
+
+* Application Logic Vulnerabilities
+  逻辑错误,根据应用场景。
+
+  不要怀疑自己的才能和大公司犯错的能力。
+
+* 现在开始
+  重新定义你怎么看待成功。 把知识与经验定为目标，比找到bug或获得奖赏更重要。
+  集中在学习新东西，识别模式，测试新技术为目标。
+
+  一旦决定了什么是成功，下面就是方法论。
+
+** 侦察
+   问一些基本的问题，比如：
+   - 程序的范围是什么？ *.example.com或只是www.example.com?
+   - 这个公司有多少域名?
+   - 这个公司有多少IP地址?
+   - 什么类型的网站？服务？开源？协同？
+   - 它用了什么技术？什么编程语言？什么数据库？什么框架？
+  
+*** 子域名枚举
+    包括二级、三级子域名，等。
+    SSL证书，censys.io反查ip地址
+    
+*** Port Scanning
+    注意不同子域的ip地址范围，可能是不同的服务。
+   
+*** Screenshotting
+    可以查找subdomain takeover错误，和各种web服务总体感官。
+
+*** Content Discovery
+    Brute force, Google Dorks, GitHub
+    
+*** 以前的Bugs
+    测试修正代码，学会新的测试方法。
+
+** 测试应用
+   用于测试应用的方法和技术与应用类型相关。
+   不要认为所有人都看过了，没有东西留下了。对每个目标就像没有人看过一样。没找到任何东西？选择另一个。
+     
+*** 技术栈
+    识别使用的技术栈。前端JS框架，服务端框架，第三方服务，等等。
+    理解功能并记录有意思的设计模式。
+    
+    - 注意网站接受的内容格式，比如XML,
+    - 第三方工具或服务的错误配置。
+    - 对参数进行编码，看服务端如何处理。
+    - 自定义的验证机制。比如OAuth。应用如何处理重定向URL,编码，和状态参数。
+      
+*** 功能映射
+    一旦理解了网站的技术，就进行功能映射。寻找漏洞标记，定义一个测试目标，或者跟随checklist。
+  
+    寻找漏洞标记：寻找常见的会出现的漏洞的行为。
+
+    在测试应用之前确定一个工作目标。可以是SSRF,LFI,RCE，或者其它。提倡这种做法。使用这种做法，忽略其它可能的干扰，只专注于当前目标。比如，如果你的目标是寻找RCE，则不应该对未净化的HTML返回结果感兴趣，可以记录下来，以后再做。
+
+    使用checklist,OWASP和WAHH提供了测试检查表。
+
+*** 查找漏洞
+    现在，已经理解了程序，不管是用检查表，还是设定一个特定目标，建议从可能出现问题的地方开始。
+    大部分的目标都不允许自动扫描。因此，你应当专注于手工测试。
+
+    如果没有找到任何东西，则像一个普通用户一样使用网站。创建内容，用户，或其它应用提供的功能。这样做的时候提交测试payload,看应用是否正常处理输入。使用 <s>000’”)};–//, 包含所有可能破坏正常rendered的字符。 另外，如果网站使用了模板引擎，也要添加与之相关的payloads。
+
+    hacking web app没有魔法。称为一个bug hunter需要1/3的知识，1/3的观察，和1/3的毅力。深入挖掘应用并彻底测试，不浪费你的时间是关键。不幸的是，认识到差异需要经验。
+
+    支付会员，测试更多目标。
+
+* 漏洞报告
+  阅读披露指南。 *确定目标范围* 
+
+  包含细节:
+  - 引发漏洞的URL和参数
+  - 描述浏览器，操作系统(如果需要)和app版本
+  - 描述感知的影响。这个bug会被怎样利用
+  - 重新产生错误的每一个步骤
+    
+
+  
+* Web cache poisoning attack 
+  利用cdn缓存，访问敏感页面，然后加上/nonexist.css 导致cdn缓存，就可以获取用户
+  敏感信息。
+  
+  利用条件：
+Web cache functionality is set for the web application to cache static files
+based on their extensions, disregarding any caching header.
+When accessing a page like
+http://www.example.com/home.php/nonexistent.css, the web server will
+return the content of home.php for that URL.
+• Victim has to be authenticated while accessing the triggering URL
+
+https://www.blackhat.com/docs/us-17/wednesday/us-17-Gil-Web-Cache-Deception-Attack.pdf
+
 * HTTP头
   出现问题的地方：
   - HOST: 构造错误域名，服务器错误使用,绕过访问限制，通过Host判断是内部测试地址之类的。
@@ -91,3 +214,123 @@ right and wrong.
     服务端对HTTP头的错误信任，假设错误。
   
    服务器发送的邮件特别注意。 
+
+* 目标
+   写底层库太慢了，不应该追求极速，追求的应该是方便，易用。
+   虽然自己写了底层代码，易用性，健壮性，功能完整性都有待考察，可能架构都会有变化，
+   先追求做出来，好用就是目标。一心追求的细节(异步，并发)效果不一定好，可能方法都不对，还是多实践测试。
+
+* massdns
+  https://github.com/blechschmidt/massdns
+
+  Can run a million line dictionary in 30 sec
+
+* 持续性评估
+  Bug Bounties.
+  
+  pay testing.
+
+  Bounties are not pen tests。
+
+** pentration Testing
+   时间限制
+
+   范围限制较多
+
+   静态范围，只测试某个新项目
+
+   非生产环境
+
+   方法论，讲究覆盖率，像集成测试
+
+** bug bounties
+   持续性
+
+   比较宽的范围(也有限制)
+
+   演化的范围,测试所有东西，并且不断变化
+   
+   结果驱动，只看结果。get paid on results. 不能浪费时间创造工具和软件。
+   它会影响你的收益。
+
+   经常是安全性驱动的，不是公司驱动的。
+
+
+   不能使用像pen test一样的方法，bou bounties是一种竞争。不是第一，就不能获得奖励。
+   没有真实影响，就没有奖励。某个技术阻挡你，就没有奖励。
+
+** 获得赏金
+   覆盖所有可能的范围，漏掉一些东西也会让你漏掉一些获得奖励的机会。
+   
+   快速反应，只有第一才有奖励。
+
+   持续关注，不经常去看就会失去获得奖励的机会。
+
+** 持续的安全性评估
+   持续性方法，发现组织的真实开发过程，新的域名、功能 
+
+   发现短暂性的bug, Ephemeral Vulnerabilities。出现的时间短，但是影响比较大。
+
+   通过持续监控，发现新功能。 与之前的历史比较，进行功能测试。
+
+   https://github.com/assetnote/commonspeak2
+
+   
+* 如何找到不重复的bug?
+  - 不去找某个明显的错误，选择一个目标，一个你想要寻找的某类bug，并专注它。
+  - 如果找到一个重复的bug,不要气馁，想一想其它地方还会出现么？例如，这个bug会不会出现在开发环境或预发布环境
+  - 从不同的角度思考，移动平台，不同的浏览器，不同的国家
+  - 遵循横向方法或垂直方法。横向是指在整个范围内专注一单一技术或漏洞。纵向是指专注于单个应用或业务功能，并尝试尽可能多地发现错误。
+  - 专注细节
+  - 如果目标有API，读它的文档。
+  - 学习编程并自动化重复的任务
+  - 自动化可以帮助节约时间，寻找到低垂的果实。
+  - 不要使用checklist，可以维护一个checklist、wiki或知识库。但避免不理解app或产品的功能,盲目地使用checklist。
+  - 不要只使用现存的工具。改进开源工具满足你的需求，并使用小的脚本完成狩猎任务。
+  - 联合bugs。不要报告低垂的水果，直到可以把它们联合起来提升它们的严重性。
+  - 安装移动app,测试它们。
+  - 做其它人不做的事，因为他们懒或不愿去做。比如找到一个.git目录，不是直接上报，而是阅读代码，找到严重bug。
+  - root靠的事心态。像其它运动一样，50%的skills,50%的精神和10%的运气，虽然总的是110%。
+  
+* 如何找到逻辑错误或者用其它工具找不到的错误？
+  - 要找到逻辑错误，你要有创造力，并非常了解你的目标。
+  - 不到要知道你测试的产品，你还是知道技术的来龙去路。
+
+* 如何找到研究的新领域
+  许多bug hunters称呼自己为安全研究员，但是实际上研究需要更深入地理解某一个特定话题的知识，并探索新问题以发现新的bugs，而不是已知漏洞类型的新bug实例。为了研究，你需要：
+  - 选择一个主题。尽可能多地学习：白皮书，会议讨论，阅读writeups...
+  - 并尝试真正了解这些技术的工作原理。比如要理解SSRF，就要理解后端解析器。学习DOM XSS,就要理解DOM,JavaScript和浏览器如何工作。
+  - 更多地阅读，包括专业领域之外。
+  - 并且更多地hack并保持好奇心。hack的越多，尝试的随机的东西越多，就理解的越多。
+  - 不要害怕失败。研究并不是总能产生结果。
+  - 要了解当前厂商使用的不同技术。这包括技术栈，app,框架，特性，库等。
+  - 最后，要真正了解技术，请阅读规范，并使用它构建自己的应用程序。
+
+* The Best tool for Bug Hunters is
+  1  Clear Concepts of basic things which I already wrote above
+  2  Brain *** burp don't have a brain *** 
+  3  Always be positive even from failure thing **
+  4  Eagerness to Learn and explore more about bugs etc
+  5  Patience
+  6  Taking time in Recon as much as we can
+  7  Taking different path from others
+  8  Burpsuite and Browser
+  9  Automation the boring stuffs by build own tools
+
+  Static Code Tools
+
+  "technical" bugs(RCE, SQLi, XXE, XSS, etc)
+  "logical" bugs(IDOR, Priv Esc, Info Leak, etc)
+
+* 如何问问题
+  我们回答问题的风格是指向那些真正对此有兴趣并愿意主动参与解决问题的人，这一点不
+会变，也不该变。如果连这都变了，我们就是在降低做自己最擅长的事情上的效率。
+
+  我们大多数人非常乐意与你平等地交流，只要你付出小小努力来满足基本要求，我们就会
+欢迎你加入我们的文化。但让我们帮助那些不愿意帮助自己的人是没有效率的。无知没有关
+系，但装白痴就是不行。
+
+  你必须表现出能引导你变得在行的特质 -- 机敏、有想法、善于观察、乐于主动参与解决
+  问题。
+
+  

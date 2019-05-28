@@ -434,3 +434,8 @@
    bootstrap使用量第一
    senmantic ui好像18年后不活跃了
    
+
+* sql
+  h2 db中的IDENTITY类型默认就是主键，创建主键的外键就是一对一约束。
+
+ 

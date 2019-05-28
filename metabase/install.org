@@ -1,0 +1,28 @@
+#+TITLE: Metabase在Windows下的开发环境配置
+#+DESCRIPTION: 在Windows下配置Metabase的开发环境
+#+KEYWORDS: metabase, clojure
+#+CATEGORIES: 编程
+#+LANGUAGE: zh-CN
+
+
+* 简介
+  Metabase的目标是让公司的任何人都能用简单、开源的方法从数据中提问和学习。metabase后端的开发语言为clojure,前端使用js实现。
+  本地编译的方法参考[[https://github.com/metabase/metabase/blob/master/docs/developers-guide.md][developers guide]]。 Windows下推荐使用WSL。由于我已经安装了cygwin,就尝试在cygwin下编译metabase。 编译前本地要安装cygwin,nodejs,yarn,leiningen。
+
+
+* 编译过程
+  直接使用 ./bin/build 进行编译，会自动安装依赖包并编译，但是在编译metabase driver时出现：\modules\drivers\bigquery\target\uberjar\bigquery.metabase-driver.jar (系统找不到指定的路径。)的错误。  是因为传递的路径为cygwin的路径，不是dos路径，修改bin/build-driver.sh：
+#+begin_src sh
+strip_and_compress() {
+    # ok, first things first, strip out any classes also found in the core Metabase uberjar
+    lein strip-and-compress `cygpath -d "$target_jar" `
+
+    # next, remove any classes also found in any of the parent JARs
+    for parent in $parents; do
+        echo "Removing duplicate classes with $parent uberjar..."
+        lein strip-and-compress `cygpath -d "$target_jar" ` "resources/modules/$parent.metabase-driver.jar"
+    done
+}
+#+end_src
+  添加cygpath -d 转换路径表示。之后就能正常编译通过。目标文件保存在target/uberjar/metabase.jar。
+

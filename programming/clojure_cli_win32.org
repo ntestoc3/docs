@@ -1,0 +1,61 @@
+#+TITLE: windows配置cider和clojure clj
+#+DESCRIPTION: clojure配置
+#+KEYWORDS: programming, clojure
+#+CATEGORIES: 编程
+#+LANGUAGE: zh-CN
+
+* clj windows
+  因为leiningen 启动速度太慢了，linux下的clj启动速度挺好的，就是clj命令行对windows支持还在测试中，有一个第三方实现的clj windows项目，用于支持windows下的clojure cli。项目地址[[https://github.com/frericksm/clj-windows][clj-windows]]。不过在配合cider的过程中有命令行启动参数的问题，需要修改cider的代码，在此记录下，用于备忘。
+
+  linux的启动命令:
+#+begin_src sh
+clj -Sdeps '{:deps {cider/cider-nrepl {:mvn/version "0.20.0"} }}' -e '(require (quote cider-nrepl.main)) (cider-nrepl.main/init ["cider.nrepl/cider-middleware"])'
+#+end_src
+
+  Windows的启动命令：
+#+begin_src bat 
+clj -Sdeps "{:deps {cider/cider-nrepl {:mvn/version \"0.20.0\"} }}" -e "(require (quote cider-nrepl.main)) (cider-nrepl.main/init [\"cider.nrepl/cider-middleware\"])"
+#+end_src
+  主要是把单引号改为双引号，嵌套的双引号进行转义。
+
+* cider.el的修改
+  首先是cider-jack-in-params函数:
+#+begin_src elisp
+('clojure-cli (format cider-clojure-cli-parameters
+                      (concat
+                       "["
+                       (mapconcat
+                        (apply-partially #'format "\"%s\"") ;; 改这里
+                        (cider-jack-in-normalized-nrepl-middlewares)
+                        ", ")
+                       "]")))
+
+;; 改为
+(apply-partially #'format "\\\"%s\\\"")
+#+end_src
+
+  
+  然后是 cider-clojure-cli-jack-in-dependencies函数:
+#+begin_src elisp
+(concat
+ global-opts
+ (unless (seq-empty-p global-opts) " ")
+ "-Sdeps '{:deps {" ;; 修改这里和下面的引号
+ (mapconcat #'identity
+            (seq-map (lambda (dep) (format "%s {:mvn/version \"%s\"}" (car dep) (cadr dep))) dependencies)
+            " ")
+ "}}' "
+ params)
+
+;; ---> 改引号为下面的形式
+"-Sdeps \"{:deps {"
+(mapconcat #'identity
+           (seq-map (lambda (dep) (format "%s {:mvn/version \\\"%s\\\"}" (car dep) (cadr dep))) dependencies)
+           " ")
+"}}\" "
+ 
+#+end_src
+
+   修改上面两个地方后，cider就可以启动clj cli了，可以正确解析deps.edn依赖。
+
+

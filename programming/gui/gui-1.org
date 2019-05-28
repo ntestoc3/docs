@@ -1,0 +1,22 @@
+#+TITLE: clojure GUI编程-1
+#+DESCRIPTION: clojure 编程，关于GUI的编程方法。
+#+KEYWORDS: clojure, GUI
+#+CATEGORIES: 编程, GUI
+#+LANGUAGE: zh-CN
+
+
+* 简介
+  最近了解了下GUI编程，测试了实时刷新GUI的编程方法，作为总结，记录下来。
+  
+  具体示例以okex交易行情为例子,写一个GUI程序，界面要实时刷新当前行情。
+  参考[[https://www.okex.com/spot/trade#product=ltc_usdt][官方地址]]。 okex的[[https://www.okex.com/docs/zh/#spot-detail][API地址]]。 主要用到获取币对信息，和深度数据。
+
+* 实现过程
+  
+** 添加依赖包
+   新建deps.edn文件，添加依赖项:
+#+INCLUDE: "./deps.edn" src clojure
+
+** API请求的实现
+   新建api.clj，根据okex API文档实现需要的API：
+#+INCLUDE: "./src/api.clj" src clojure
