@@ -1,4 +1,4 @@
-(ns core
+(ns core2
   (:require [seesaw.core :as gui]
             [seesaw.table :as table]
             [seesaw.bind :as bind]
@@ -27,11 +27,23 @@
                :instrument-id]
               coin-pairs))
 
-;;; 设置form的默认值
+(def instruments-info (atom {}))
+
+(defn run-get-instrument-services!
+  "运行获取币对深度信息的服务，没有提供停止功能"
+  [instrument-id]
+  (when-not (contains? @instruments-info instrument-id)
+    (future (loop []
+              (let [data (api/get-spot-instrument-book instrument-id)]
+                (setval [ATOM instrument-id] data instruments-info))
+              (Thread/sleep 200)
+              (recur)))))
+
+;; 设置form的默认值
 (let [first-base (first base-coins)]
   (def coin-pair-data (atom {:base-coin first-base
-                        :quote-coin (-> (get-quote-coins first-base)
-                                        first)})))
+                             :quote-coin (-> (get-quote-coins first-base)
+                                             first)})))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -79,21 +91,18 @@
   (let [quote-coin (gui/select f [:#quote-coin])]
     (gui/config! quote-coin :model model)))
 
-(defn depth-table-update!
-  "更新depth数据显示"
-  [root]
-  (let [coin-p @coin-pair-data
-        instrument-id (get-instrument-id (:base-coin coin-p)
-                                         (:quote-coin coin-p))
-        data (api/get-spot-instrument-book instrument-id)
-        bids-table (gui/select root [:#bids-table])
-        asks-table (gui/select root [:#asks-table])]
-    (->> (:bids data)
-         depth-data-model
-         (gui/config! bids-table :model))
-    (->> (:asks data)
-         depth-data-model
-         (gui/config! asks-table :model))))
+(defn get-current-instrument-id
+  "获取当前币对的id"
+  []
+  (let [coin-p @coin-pair-data]
+    (get-instrument-id (:base-coin coin-p)
+                       (:quote-coin coin-p))))
+
+(defn bind-transfrom-set-model
+  [trans-fn frame id]
+  (bind/bind
+   (bind/transform #(trans-fn %))
+   (bind/property (gui/select frame [id]) :model)))
 
 (defn add-behaviors
   "添加事件处理"
@@ -104,22 +113,29 @@
     (bind/bind
      (bind/selection base-coin)
      (bind/transform get-quote-coins)
-     (bind/tee
-      (bind/property quote-coin :model)
-      (bind/b-swap! coin-pair-data assoc :base-coin)))
+     (bind/property quote-coin :model))
 
-    ;; 计价货币选择事件绑定
     (bind/bind
-     (bind/selection quote-coin)
-     (bind/b-swap! coin-pair-data assoc :quote-coin))
+     (bind/funnel
+      (bind/selection base-coin)
+      (bind/selection quote-coin))
+     (bind/transform (fn [_]
+                       {:base-coin (gui/selection base-coin)
+                        :quote-coin (gui/selection quote-coin)}))
+     coin-pair-data)
 
-    ;; 定时更新depth-view
-    (gui/timer (fn [_]
-                 (depth-table-update! root)) :delay 100)
+    ;; 币对深度信息更改就更新depth-view
+    (bind/bind
+     instruments-info
+     (bind/transform #(% (get-current-instrument-id)))
+     (bind/tee
+      (bind-transfrom-set-model :bids root :#bids-table)
+      (bind-transfrom-set-model :asks root :#asks-table)))
 
-    ;; coin-pair-data修改就更新depth-view
+    ;; coin-pair-data修改就启动新的get-instrument-services
     (add-watch coin-pair-data :depth-view (fn [k _ _ new-data]
-                                            (depth-table-update! root)))))
+                                            (-> (get-current-instrument-id)
+                                                run-get-instrument-services!)))))
 
 (defn -main [& args]
   (gui/invoke-later

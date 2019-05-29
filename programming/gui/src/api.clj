@@ -1,6 +1,5 @@
 (ns api
   (:require [clj-http.client :as http]
-            [clj-http.cookies :as cookies]
             [cheshire.core :as json]
             [cemerick.url :refer [url url-encode]]
             [taoensso.timbre :as log]
@@ -9,7 +8,6 @@
         com.rpl.specter))
 
 (def base-api-host "https://www.okex.com/")
-(def cs (cookies/cookie-store))
 
 (defn snake-case-keys
   "把map m的key转换为snake_string"
@@ -25,9 +23,8 @@
          u (-> (url base-api-host path)
                (assoc :query args)
                str)
-         header {:cookie-store cs
-
-                 ;; 代理设置
+         header {
+                 ;; 本地代理设置
                  :proxy-host "127.0.0.1"
                  :proxy-port 8080
 

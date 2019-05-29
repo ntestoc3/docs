@@ -9,7 +9,9 @@
   最近了解了下GUI编程，测试了实时刷新GUI的编程方法，作为总结，记录下来。
   
   具体示例以okex交易行情为例子,写一个GUI程序，界面要实时刷新当前行情。
-  参考[[https://www.okex.com/spot/trade#product=ltc_usdt][官方地址]]。 okex的[[https://www.okex.com/docs/zh/#spot-detail][API地址]]。 主要用到获取币对信息，和深度数据。
+  参考[[https://www.okex.com/spot/trade#product=ltc_usdt][官方地址]]。 
+
+  okex的[[https://www.okex.com/docs/zh/#spot-detail][API地址]]， 主要用到获取币对信息，和深度数据。
 
 * 实现过程
   
@@ -18,8 +20,76 @@
 #+INCLUDE: "./deps.edn" src clojure
 
 ** API请求的实现
-   新建api.clj，根据okex API文档实现需要的API：
+   新建src/api.clj，根据okex API文档实现需要的API：
 #+INCLUDE: "./src/api.clj" src clojure
 
 ** gui界面的实现
-   首先用回调的方式实现gui的数据刷新。
+   创建界面文件src/core.clj,首先用回调的方式实现gui的数据刷新。
+#+INCLUDE: "./src/core.clj" src clojure
+
+   由于使用了swing的Timer进行获取数据并刷新，会造成界面严重卡顿。
+   并且内存占用很高。
+#+CAPTION: 运行时界面和内存占用截图
+[[./pic1.png]]
+
+** 界面实时刷新的改进
+   把定时执行的代码放到独立的线程中获取数据，然后在swing线程中更新界面。
+   修改depth-table-update!的实现:
+#+begin_src clojure
+(defn depth-table-update!
+  "更新depth table数据显示"
+  [root]
+  (let [coin-p @coin-pair-data
+        instrument-id (get-instrument-id (:base-coin coin-p)
+                                         (:quote-coin coin-p))
+        data (api/get-spot-instrument-book instrument-id)
+        bids-table (gui/select root [:#bids-table])
+        asks-table (gui/select root [:#asks-table])]
+    ;; 在gui线程中更新model
+    (gui/invoke-later
+     (->> (:asks data)
+          depth-data-model
+          (gui/config! asks-table :model))
+     (->> (:bids data)
+          depth-data-model
+          (gui/config! bids-table :model)))))
+
+#+end_src
+
+   修改add-behaviors中的timer，使用独立线程:
+#+begin_src clojure
+(defn add-behaviors
+  "添加事件处理"
+  [root]
+  (let [base-coin (gui/select root [:#base-coin])
+        quote-coin (gui/select root [:#quote-coin])]
+    ;; 基准货币选择事件绑定
+    (bind/bind
+     (bind/selection base-coin)
+     (bind/transform get-quote-coins)
+     (bind/tee
+      (bind/property quote-coin :model)
+      (bind/b-swap! coin-pair-data assoc :base-coin)))
+
+    ;; 计价货币选择事件绑定
+    (bind/bind
+     (bind/selection quote-coin)
+     (bind/b-swap! coin-pair-data assoc :quote-coin))
+
+    ;; 定时更新depth-view
+    (future (loop []
+              (depth-table-update! root)
+              (Thread/sleep 100)
+              (recur)))
+
+    ;; coin-pair-data修改就更新depth-view
+    (add-watch coin-pair-data :depth-view (fn [k _ _ new-data]
+                                            (depth-table-update! root)))))
+#+end_src
+
+   运行(-main),可以看到界面还是比较卡顿。
+
+** 改进方法2
+   把数据请求的代码独立出来，用atom保存(也可以用数据库持久化)，相当于把model分离出来。
+
+   
