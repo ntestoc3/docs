@@ -32,7 +32,8 @@
 (defn run-get-instrument-services!
   "运行获取币对深度信息的服务，没有提供停止功能"
   [instrument-id]
-  (when-not (contains? @instruments-info instrument-id)
+  (when (and instrument-id
+             (not (contains? @instruments-info instrument-id)))
     (future (loop []
               (let [data (api/get-spot-instrument-book instrument-id)]
                 (setval [ATOM instrument-id] data instruments-info))
@@ -42,8 +43,8 @@
 ;; 设置form的默认值
 (let [first-base (first base-coins)]
   (def coin-pair-data (atom {:base-coin first-base
-                             :quote-coin (-> (get-quote-coins first-base)
-                                             first)})))
+                        :quote-coin (-> (get-quote-coins first-base)
+                                        first)})))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -113,24 +114,32 @@
     (bind/bind
      (bind/selection base-coin)
      (bind/transform get-quote-coins)
-     (bind/property quote-coin :model))
+     (bind/tee
+      ;; 设置quote-coin的选择项
+      (bind/property quote-coin :model)
+      (bind/bind
+       (bind/transform first)
+       (bind/selection quote-coin))))
 
     (bind/bind
      (bind/funnel
       (bind/selection base-coin)
       (bind/selection quote-coin))
-     (bind/transform (fn [_]
-                       {:base-coin (gui/selection base-coin)
-                        :quote-coin (gui/selection quote-coin)}))
+     (bind/transform (fn [[base-coin quote-coin]]
+                       {:base-coin base-coin
+                        :quote-coin quote-coin}))
      coin-pair-data)
 
     ;; 币对深度信息更改就更新depth-view
     (bind/bind
      instruments-info
      (bind/transform #(% (get-current-instrument-id)))
+     (bind/notify-later)
      (bind/tee
-      (bind-transfrom-set-model :bids root :#bids-table)
-      (bind-transfrom-set-model :asks root :#asks-table)))
+      (bind-transfrom-set-model #(-> (:bids %)
+                                     depth-data-model) root :#bids-table)
+      (bind-transfrom-set-model #(-> (:asks %)
+                                    depth-data-model) root :#asks-table)))
 
     ;; coin-pair-data修改就启动新的get-instrument-services
     (add-watch coin-pair-data :depth-view (fn [k _ _ new-data]
@@ -143,7 +152,8 @@
                           :content (make-depth-view))]
      (update-quote-coin-model! frame (-> (:base-coin @coin-pair-data)
                                          get-quote-coins))
-     (gui/value! frame @coin-pair-data)
+     ;; 先绑定事件，再设置默认值
      (add-behaviors frame)
+     (gui/value! frame @coin-pair-data)
      (-> frame gui/pack! gui/show!))))
 
