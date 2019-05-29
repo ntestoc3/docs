@@ -17,25 +17,25 @@
   
 ** 添加依赖包
    新建deps.edn文件，添加依赖项:
-#+INCLUDE: "./deps.edn" src clojure
+#+INCLUDE: "./deps.edn" src clojure -n
 
 ** API请求的实现
    新建src/api.clj，根据okex API文档实现需要的API：
-#+INCLUDE: "./src/api.clj" src clojure
+#+INCLUDE: "./src/api.clj" src clojure -n
 
 ** gui界面的实现
    创建界面文件src/core.clj,首先用回调的方式实现gui的数据刷新。
-#+INCLUDE: "./src/core.clj" src clojure
+#+INCLUDE: "./src/core.clj" src clojure -n
 
    由于使用了swing的Timer进行获取数据并刷新，会造成界面严重卡顿。
-   并且内存占用很高。
+   并且内存占用很高,使用clj -A:run运行程序。
 #+CAPTION: 运行时界面和内存占用截图
 [[./pic1.png]]
 
 ** 界面实时刷新的改进
    把定时执行的代码放到独立的线程中获取数据，然后在swing线程中更新界面。
    修改depth-table-update!的实现:
-#+begin_src clojure
+#+begin_src clojure -n
 (defn depth-table-update!
   "更新depth table数据显示"
   [root]
@@ -57,7 +57,7 @@
 #+end_src
 
    修改add-behaviors中的timer，使用独立线程:
-#+begin_src clojure
+#+begin_src clojure -n
 (defn add-behaviors
   "添加事件处理"
   [root]
@@ -91,5 +91,11 @@
 
 ** 改进方法2
    把数据请求的代码独立出来，用atom保存(也可以用数据库持久化)，相当于把model分离出来。
+   文件保存为src/core2.clj，完整代码：
+#+INCLUDE: "./src/core2.clj" src clojure -n
 
+   使用clj -A:run2运行程序，
+   可以看到，把数据请求和界面更新分开之后，界面的操作比较流畅。
    
+* 总结
+  通过分离数据请求部分，整个界面的逻辑就变成发布/订阅的模式，通过降低数据获取与展示的耦合，界面响应也比较流畅。 这和clojurescript的re-frame框架的理念也相似，re-frame通过reg-sub和<sub来进行数据的发布与订阅，下一次用re-frame写一个web端的界面作为比较。

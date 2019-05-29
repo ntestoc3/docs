@@ -1,6 +1,10 @@
 {:aliases
- {:run
-  {:main-opts ["-m" "core"]}},
+ {
+  ;; 运行初始代码 clj -A:run
+  :run {:main-opts ["-m" "core"]}
+
+  ;; 用于运行改进后的代码 clj -A:run2
+  :run2 {:main-opts ["-m" "core2"]}},
 
  :deps
  {

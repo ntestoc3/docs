@@ -30,8 +30,8 @@
 ;;; 设置form的默认值
 (let [first-base (first base-coins)]
   (def coin-pair-data (atom {:base-coin first-base
-                        :quote-coin (-> (get-quote-coins first-base)
-                                        first)})))
+                             :quote-coin (-> (get-quote-coins first-base)
+                                             first)})))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -47,25 +47,25 @@
 (defn make-depth-view
   []
   (let [bids-view (gui/vertical-panel
-                       :items [(gui/label "买入信息")
-                               (gui/scrollable
-                                (gui/table
-                                 :id :bids-table
-                                 :model (depth-data-model [])))])
+                   :items [(gui/label "买入信息")
+                           (gui/scrollable
+                            (gui/table
+                             :id :bids-table
+                             :model (depth-data-model [])))])
 
         asks-view (gui/vertical-panel
-                       :items [(gui/label "卖出信息")
-                               (gui/scrollable
-                                (gui/table
-                                 :id :asks-table
-                                 :model (depth-data-model [])))])
+                   :items [(gui/label "卖出信息")
+                           (gui/scrollable
+                            (gui/table
+                             :id :asks-table
+                             :model (depth-data-model [])))])
 
         coin-pair-selector (gui/horizontal-panel
-                                :items [(gui/label "基准币种:")
-                                        (gui/combobox :id :base-coin
-                                                      :model base-coins)
-                                        (gui/label "计价币种:")
-                                        (gui/combobox :id :quote-coin)])]
+                            :items [(gui/label "基准币种:")
+                                    (gui/combobox :id :base-coin
+                                                  :model base-coins)
+                                    (gui/label "计价币种:")
+                                    (gui/combobox :id :quote-coin)])]
     (gui/border-panel
      :north coin-pair-selector
      :center (gui/horizontal-panel
@@ -124,6 +124,7 @@
 (defn -main [& args]
   (gui/invoke-later
    (let [frame (gui/frame :title "okex 行情信息"
+                          :on-close :exit ;; 窗口关闭时退出程序
                           :content (make-depth-view))]
      (update-quote-coin-model! frame (-> (:base-coin @coin-pair-data)
                                          get-quote-coins))
