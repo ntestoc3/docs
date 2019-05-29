@@ -1,6 +1,6 @@
 #+TITLE: clojure GUI编程-1
-#+DESCRIPTION: clojure 编程，关于GUI的编程方法。
-#+KEYWORDS: clojure, GUI
+#+DESCRIPTION: clojure 编程，关于GUI的编程方法，本篇主要讲使用swing构建实时刷新的GUI程序。
+#+KEYWORDS: clojure, GUI, swing, seesaw
 #+CATEGORIES: 编程, GUI
 #+LANGUAGE: zh-CN
 
