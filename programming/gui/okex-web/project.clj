@@ -3,8 +3,10 @@
                  [org.clojure/clojurescript "1.10.520"]
                  [reagent "0.8.1"]
                  [re-frame "0.10.6"]
+                 [re-com "2.4.0"]
                  [day8.re-frame/http-fx "0.1.6"]
-                 [re-com "2.4.0"]]
+                 [com.rpl/specter "1.1.2"] ;; data selector
+                 ]
 
   :plugins [[lein-cljsbuild "1.1.7"]]
 

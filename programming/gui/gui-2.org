@@ -31,3 +31,5 @@
 
 * 总结
   使用netbeans设计GUI,然后从clojure中加载界面代码还是非常方便的。主要是从clojure中调用java非常方便，参考[[https://purelyfunctional.tv/article/clojure-is-a-better-java-than-java/][Clojure is a better Java than Java]]。
+
+  整个项目的地址在[[https://github.com/ntestoc3/docs/tree/master/programming/gui/okex][okex]]。
