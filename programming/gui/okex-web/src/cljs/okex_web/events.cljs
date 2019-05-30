@@ -26,6 +26,9 @@
  (fn-traced [_ _]
    db/default-db))
 
+
+(evt-db2 :set-name [:name])
+
 ;; 保存所有币对信息
 (evt-db2 :set-instruments [:instruments])
 

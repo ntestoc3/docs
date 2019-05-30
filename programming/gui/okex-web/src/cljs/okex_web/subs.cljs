@@ -20,16 +20,6 @@
    (:depth-data db)))
 
 (re-frame/reg-sub
- ::asks
- (fn [db]
-   (get-in db [:depth-data :asks])))
-
-(re-frame/reg-sub
- ::bids
- (fn [db]
-   (get-in db [:depth-data :bids])))
-
-(re-frame/reg-sub
  ::base-coins
  (fn [db]
    (->> (:instruments db)
