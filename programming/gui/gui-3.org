@@ -1,0 +1,56 @@
+#+TITLE: clojure GUI编程-3
+#+DESCRIPTION: clojurescript写一个web UI。
+#+KEYWORDS: clojurescript, re-frame, web ui
+#+CATEGORIES: 编程, GUI
+#+LANGUAGE: zh-CN
+
+
+* 简介
+  这部分主要是使用re-frame构建一个SPA程序，完成okex行情信息的显示。
+
+* 实现过程
+  
+** 创建项目
+  使用[[https://github.com/Day8/re-frame-template][re-frame-template]]创建项目:
+  lein new re-frame okex-web +10x +re-com +cider
+
+  +cider配合emacs使用， +re-com使用现成的web gui组件, +10x 用于re-frame的调试。
+
+  在emacs下使用cider-jack-in-cljs后，执行下面的代码转到cljs repl:
+#+begin_src clojure
+
+(use 'figwheel-sidecar.repl-api)
+(start-figwheel!)
+(cljs-repl)
+
+#+end_src
+
+  发现cljs不能正确输入，会出现一个stdin的minibuffer,解决方法参考
+  https://clojureverse.org/t/emacs-figwheel-main-why-stdin-in-the-minibuffer/3955/8，
+  修改figwheel-sidecar的版本号为"0.5.18"，cider/piggieback的版本号为"0.4.1"，为了兼容nrepl 0.6
+
+  由于要使用ajax请求API，需要添加http-fx依赖，最后的project.clj如下:
+#+INCLUDE "./okex-web/project.clj" src clojure -n
+
+** 绕过CORS
+   因为要跨域使用API,需要绕过浏览器的跨域限制,具体方法参考[[https://www.thepolyglotdeveloper.com/2014/08/bypass-cors-errors-testing-apis-locally/][Bypass CORS Errors When Testing APIs Locally]]。
+   
+   对于chrome,使用下面的命令行启动:
+   chromium --disable-web-security --user-data-dir ./chromeuser
+
+** 复制文件
+   把上一篇创建的core2.clj和api.clj复制到src/okex文件夹下，改名core2.clj为core.clj。
+   并修改命名空间与文件名对应。
+
+** 设计gui界面
+   使用netbeans新建JFrame form,并设计窗体，修改要用到的widget的name属性为对应的swing id名，然后保存这个文件到src/okex文件夹下，注意包名要用okex,文件内容如下:
+#+INCLUDE: "./okex/src/okex/DepthWindow.java" src java -n
+
+** clojure中加载java gui代码
+   修改core.clj，导入gui界面的类，并加载，代码如下:
+#+INCLUDE: "./okex/src/okex/core.clj" src clojure -n
+   
+   clojure从java加载代码还是非常简单的，这里多了一个绑定控件的name到swing id的动作。
+
+* 总结
+  使用netbeans设计GUI,然后从clojure中加载界面代码还是非常方便的。主要是从clojure中调用java非常方便，参考[[https://purelyfunctional.tv/article/clojure-is-a-better-java-than-java/][Clojure is a better Java than Java]]。
