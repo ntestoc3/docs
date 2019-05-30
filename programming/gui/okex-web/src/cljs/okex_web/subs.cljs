@@ -29,9 +29,15 @@
 
 (re-frame/reg-sub
  ::quote-coins
- (fn [db [_ base-coin]]
-   (println base-coin)
-   (->> (:instruments db)
-        (select [s/ALL #(= (:base_currency %) base-coin) :quote_currency])
-        set
-        sort)))
+ (fn [db]
+   (:quote-coins db)))
+
+(re-frame/reg-sub
+ ::base-coin
+ (fn [db]
+   (:base-coin db)))
+
+(re-frame/reg-sub
+ ::quote-coin
+ (fn [db]
+   (:quote-coin db)))

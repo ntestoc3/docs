@@ -21,22 +21,61 @@
                      :order-count order-count}])
              data))
 
+(defn get-instrument-id
+  "获得当前币对名称"
+  [db]
+  (let [base-coin (:base-coin db)
+        quote-coin (:quote-coin db)]
+    (s/select-one [s/ALL
+                   #(and (= (:base-currency %) base-coin)
+                         (= (:quote-currency %) quote-coin))
+                   :instrument-id]
+                  (:instruments db))))
+
+(defn get-quote-coins
+  [db base-coin]
+  (->> (:instruments db)
+       (select [s/ALL #(= (:base_currency %) base-coin) :quote_currency])
+       set
+       sort))
+
+;;;;;;;;;;;;;;;;;;;;;;;;; timer event
+
+(defn dispatch-timer-event
+  []
+  (let [now (js/Date.)]
+    (re-frame/dispatch [:timer now])))  ;; <-- dispatch used
+
+;; 200毫秒刷新1次
+(defonce do-timer (js/setInterval dispatch-timer-event 200))
+
+;;;;;;;;;;;;;;;;;;;;;;; event db
 (re-frame/reg-event-db
  ::initialize-db
  (fn-traced [_ _]
    db/default-db))
 
-
+;; 设置标题
 (evt-db2 :set-name [:name])
 
 ;; 保存所有币对信息
 (evt-db2 :set-instruments [:instruments])
+
+(evt-db2 :set-quote-coins [:quote-coins])
+
+(evt-db2 :set-quote-coin [:quote-coin])
 
 (re-frame/reg-event-db
  :set-depth-data
  (fn-traced [db [_ data]]
             (->> (format-depth-data data)
                  (assoc db :depth-data))))
+
+(re-frame/reg-event-db
+ :set-base-coin
+ (fn-traced [db [_ base-coin]]
+            (re-frame/dispatch [:set-quote-coins (get-quote-coins db base-coin)])
+            (assoc db :base-coin base-coin)))
 
 ;;; ================ api 请求
 (re-frame/reg-event-fx
@@ -58,3 +97,10 @@
                           :response-format (ajax/json-response-format {:keywords? true})
                           :on-success [:set-depth-data]
                           :on-failure [:fail-load [:fetch-depth-data]]}}))
+
+;;; =================== fx event
+(re-frame/reg-event-fx
+ :timer
+ (fn [db _]
+   (when-let [instrument-id (get-instrument-id db)]
+     {:dispatch [::fetch-depth-data instrument-id]})))

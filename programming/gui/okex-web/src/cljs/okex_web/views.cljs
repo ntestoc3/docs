@@ -35,9 +35,9 @@
 
 (defn depth-view []
   (let [base-coins (re-frame/subscribe [::subs/base-coins])
-        selected-base-coin (atom nil)
-        quote-coins (atom [])
-        selected-quote-coin (atom nil)
+        quote-coins (re-frame/subscribe [::subs/quote-coins])
+        base-coin (re-frame/subscribe [::subs/base-coin])
+        quote-coin (re-frame/subscribe [::subs/quote-coin])
         depth-data (re-frame/subscribe [::subs/depth-data])]
     [re-com/v-box
      :gap "10px"
@@ -46,19 +46,16 @@
                  :align :center
                  :children [[re-com/single-dropdown
                              :choices (vec->dropdown-choices @base-coins)
-                             :model selected-base-coin
+                             :model @base-coin
                              :placeholder "选择基准币种"
                              :filter-box? true
-                             :on-change #(do
-                                           (reset! selected-base-coin %)
-                                           (reset! quote-coins (<sub [::subs/quote-coins %]))
-                                           (reset! selected-quote-coin nil))]
+                             :on-change #(>evt [:set-base-coin %])]
                             [re-com/gap :size "10px"]
                             [re-com/single-dropdown
-                             :choices (vec->dropdown-choices @quote-coins @selected-base-coin)
-                             :model selected-quote-coin
+                             :choices (vec->dropdown-choices @quote-coins @base-coin)
+                             :model @quote-coin
                              :placeholder "选择计价币种"
-                             :on-change #(reset! selected-quote-coin %)
+                             :on-change #(>evt [:set-quote-coin %])
                              ]
                             ]]
                 [re-com/h-split
