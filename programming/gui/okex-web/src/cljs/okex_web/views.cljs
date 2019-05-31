@@ -65,14 +65,14 @@
 
 
 (defn title []
-  (let [name (re-frame/subscribe [::subs/name])]
-    [re-com/title
-     :label @name
-     :class "center-block"
-     :level :level1]))
+  [re-com/title
+   :label (<sub [::subs/name])
+   :class "center-block"
+   :level :level1])
 
-(defn error []
+(defn error
   "显示错误"
+  []
   (let [error (re-frame/subscribe [::subs/error])]
     (when @error
       [re-com/alert-box

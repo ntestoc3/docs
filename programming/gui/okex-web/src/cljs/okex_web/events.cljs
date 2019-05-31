@@ -90,11 +90,12 @@
 
 ;; 保存错误信息
 (re-frame/reg-event-db
- :error
+ :set-error
  (fn-traced [db [_ path error]]
             (assoc db :error {:path path
                               :msg error})))
 
+;; 清除错误信息
 (re-frame/reg-event-db
  :clear-error
  (fn-traced [db _]
@@ -110,7 +111,7 @@
                           :timeout 8000
                           :response-format (ajax/json-response-format {:keywords? true})
                           :on-success [:set-instruments]
-                          :on-failure [:error [:fetch-instruments]]}}))
+                          :on-failure [:set-error :fetch-instruments]}}))
 
 (re-frame/reg-event-fx
  ::fetch-depth-data
@@ -121,7 +122,7 @@
                           :timeout 8000
                           :response-format (ajax/json-response-format {:keywords? true})
                           :on-success [:set-depth-data]
-                          :on-failure [:error [:fetch-depth-data]]}}))
+                          :on-failure [:set-error :fetch-depth-data]}}))
 
 ;;; =================== fx event
 (re-frame/reg-event-fx

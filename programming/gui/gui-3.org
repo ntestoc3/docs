@@ -1,7 +1,7 @@
 #+TITLE: clojure GUI编程-3
 #+DESCRIPTION: clojurescript写一个web UI。
 #+KEYWORDS: clojurescript, re-frame, web ui
-#+CATEGORIES: 编程, GUI
+#+CATEGORIES: 编程, GUI, re-frame, clojurescript
 #+LANGUAGE: zh-CN
 
 
@@ -14,8 +14,9 @@
   
 ** 创建项目
   使用[[https://github.com/Day8/re-frame-template][re-frame-template]]创建项目:
+#+begin_src sh
   lein new re-frame okex-web +10x +re-com +cider
-
+#+end_src
   +cider配合emacs使用， +re-com使用现成的web gui组件, +10x 用于re-frame的调试。
 
   在emacs下使用cider-jack-in-cljs后，执行下面的代码转到cljs repl:
@@ -29,24 +30,42 @@
 
   发现cljs不能正确输入，会出现一个stdin的minibuffer,解决方法参考
   https://clojureverse.org/t/emacs-figwheel-main-why-stdin-in-the-minibuffer/3955/8，
-  修改figwheel-sidecar的版本号为"0.5.18"，cider/piggieback的版本号为"0.4.1"，为了兼容nrepl 0.6
+  修改figwheel-sidecar的版本号为"0.5.18"，cider/piggieback的版本号为"0.4.1"，主要是为了兼容nrepl 0.6。
 
   由于要使用ajax请求API，需要添加http-fx依赖，最后的project.clj如下:
-#+INCLUDE "./okex-web/project.clj" src clojure -n
+#+INCLUDE: "./okex-web/project.clj" src clojure -n
 
 ** 绕过CORS
    因为要跨域使用API,需要绕过浏览器的跨域限制,具体方法参考[[https://www.thepolyglotdeveloper.com/2014/08/bypass-cors-errors-testing-apis-locally/][Bypass CORS Errors When Testing APIs Locally]]。
    
    对于chrome,使用下面的命令行启动:
+#+begin_src sh
    chromium --disable-web-security --user-data-dir ./chromeuser
+#+end_src
 
 ** re-frame的核心思想
-   re-frame内部使用一个ratom作为db层进行数据存储[fn:1],
+   re-frame内部使用一个ratom作为db层进行数据存储[fn:1]。
+
    修改db的事件使用reg-event-db注册，然后其它地方(其它事件中，或者view中)就可以通过dispatch这个事件发布消息(相当于发布者)。
+
+
    通过reg-sub注册对db的访问，在view中通过subscribe订阅注册的sub(订阅者),当sub指向的数据更改，view就会自动刷新。
 
+** 注册事件
+   主要是修改数据的事件，保存币对信息，设置当前选择的基准货币和交易货币信息，异步请求API数据等。
+   具体参考events.cljs:
+#+INCLUDE: "./okex-web/src/cljs/okex_web/events.cljs" src clojurescript +n   
+
+   注意reg-event-fx和reg-event-db传递的函数参数是不同的，reg-event-db的一个参数是db,reg-event-fx的第一个参数是coeffects[fn:2]。
    
-   
+** 注册订阅
+   用于访问db层的数据，具体参考subs.cljs:
+#+INCLUDE: "./okex-web/src/cljs/okex_web/subs.cljs" src clojurescript +n   
+
+** 界面代码
+   订阅subs,显示界面，具体参考views.cljs:
+#+INCLUDE: "./okex-web/src/cljs/okex_web/views.cljs" src clojurescript +n   
+
 ** 发布
    使用以下命令编译生成js文件到resources/public文件夹：
 #+begin_src sh
@@ -57,7 +76,10 @@
    在浏览打开index.html就可以使用了。注意必须关掉浏览器的CORS限制。
 
 * 总结
+  re-frame写SPA程序非常强大,整体架构比较清晰,值得学习。
 
 * Footnotes
+
+[fn:2]关于coeffects的[[https://github.com/Day8/re-frame/blob/master/docs/Coeffects.md][官方文档]]  
 
 [fn:1]关于ApplicationState的[[https://github.com/Day8/re-frame/blob/master/docs/ApplicationState.md][官方文档]]
