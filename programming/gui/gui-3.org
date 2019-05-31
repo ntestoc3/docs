@@ -56,17 +56,17 @@
 ** 注册事件
    主要是进行数据修改的事件，如:保存币对信息，设置当前选择的基准货币和交易货币信息，保存深度数据和异步请求API等。
    具体参考events.cljs:
-#+INCLUDE: "./okex-web/src/cljs/okex_web/events.cljs" src clojurescript +n   
+#+INCLUDE: "./okex-web/src/cljs/okex_web/events.cljs" src clojurescript -n   
 
    注意reg-event-fx和reg-event-db传递的函数参数是不同的，reg-event-db的第一个参数是db,reg-event-fx的第一个参数是coeffects[fn:2]。
    
 ** 注册订阅
    用于访问db层的数据，具体参考subs.cljs:
-#+INCLUDE: "./okex-web/src/cljs/okex_web/subs.cljs" src clojurescript +n   
+#+INCLUDE: "./okex-web/src/cljs/okex_web/subs.cljs" src clojurescript -n   
 
 ** 界面代码
    订阅subs,显示界面，具体参考views.cljs:
-#+INCLUDE: "./okex-web/src/cljs/okex_web/views.cljs" src clojurescript +n   
+#+INCLUDE: "./okex-web/src/cljs/okex_web/views.cljs" src clojurescript -n   
 
 ** 发布
    使用以下命令编译生成js文件到resources/public文件夹：
