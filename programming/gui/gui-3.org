@@ -1,6 +1,6 @@
 #+TITLE: clojure GUI编程-3
 #+DESCRIPTION: clojurescript写一个web UI。
-#+KEYWORDS: clojurescript, re-frame, web ui
+#+KEYWORDS: clojurescript, re-frame, web ui, GUI
 #+CATEGORIES: 编程, GUI, re-frame, clojurescript
 #+LANGUAGE: zh-CN
 
