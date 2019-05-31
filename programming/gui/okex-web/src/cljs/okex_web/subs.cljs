@@ -23,7 +23,7 @@
  ::base-coins
  (fn [db]
    (->> (:instruments db)
-        (select [s/ALL :base_currency])
+        (select [s/ALL :base-currency])
         set
         sort)))
 

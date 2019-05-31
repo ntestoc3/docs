@@ -6,9 +6,14 @@
    [ajax.core :as ajax]
    [goog.string :as gstring]
    [goog.string.format]
+   [camel-snake-kebab.core :as csk]
    [com.rpl.specter :as s :refer-macros [select select-one transform]]
    [day8.re-frame.tracing :refer-macros [fn-traced defn-traced]]
    ))
+
+(defn format-map-keys
+  [m]
+  (s/transform [s/ALL s/MAP-KEYS] csk/->kebab-case-keyword m))
 
 (defn format-depth-data
   "格式化深度数据"
@@ -27,15 +32,15 @@
   (let [base-coin (:base-coin db)
         quote-coin (:quote-coin db)]
     (s/select-one [s/ALL
-                   #(and (= (:base_currency %) base-coin)
-                         (= (:quote_currency %) quote-coin))
-                   :instrument_id]
+                   #(and (= (:base-currency %) base-coin)
+                         (= (:quote-currency %) quote-coin))
+                   :instrument-id]
                   (:instruments db))))
 
 (defn get-quote-coins
   [db base-coin]
   (->> (:instruments db)
-       (select [s/ALL #(= (:base_currency %) base-coin) :quote_currency])
+       (select [s/ALL #(= (:base-currency %) base-coin) :quote-currency])
        set
        sort))
 
@@ -59,7 +64,11 @@
 (evt-db2 :set-name [:name])
 
 ;; 保存所有币对信息
-(evt-db2 :set-instruments [:instruments])
+(re-frame/reg-event-db
+ :set-instruments
+ (fn-traced [db [_ data]]
+            (->> (format-map-keys data)
+                 (assoc db :instruments))))
 
 (evt-db2 :set-quote-coins [:quote-coins])
 

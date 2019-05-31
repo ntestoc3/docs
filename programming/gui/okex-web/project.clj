@@ -24,6 +24,7 @@
                    [day8.re-frame/re-frame-10x "0.3.7-react16"]
                    [day8.re-frame/tracing "0.5.1"]
                    [figwheel-sidecar "0.5.18"]
+                   [camel-snake-kebab "0.4.0"] ;; 命名转换
                    [cider/piggieback "0.4.1"]]
     :repl-options {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]}
     :plugins      [[lein-figwheel "0.5.18"]]}

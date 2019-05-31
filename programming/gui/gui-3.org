@@ -8,6 +8,8 @@
 * 简介
   这部分主要是使用re-frame构建一个SPA程序，完成okex行情信息的显示。
 
+  关于re-frame的设计理念和使用方法，参考[[https://github.com/Day8/re-frame/blob/master/docs/README.md][官方文档]]。
+
 * 实现过程
   
 ** 创建项目
@@ -38,19 +40,14 @@
    对于chrome,使用下面的命令行启动:
    chromium --disable-web-security --user-data-dir ./chromeuser
 
-** 复制文件
-   把上一篇创建的core2.clj和api.clj复制到src/okex文件夹下，改名core2.clj为core.clj。
-   并修改命名空间与文件名对应。
+** 发布
+   使用以下命令编译生成js文件到resources/public文件夹：
+#+begin_src sh
+   lein do clean, cljsbuild once min
+#+end_src
 
-** 设计gui界面
-   使用netbeans新建JFrame form,并设计窗体，修改要用到的widget的name属性为对应的swing id名，然后保存这个文件到src/okex文件夹下，注意包名要用okex,文件内容如下:
-#+INCLUDE: "./okex/src/okex/DepthWindow.java" src java -n
-
-** clojure中加载java gui代码
-   修改core.clj，导入gui界面的类，并加载，代码如下:
-#+INCLUDE: "./okex/src/okex/core.clj" src clojure -n
-   
-   clojure从java加载代码还是非常简单的，这里多了一个绑定控件的name到swing id的动作。
+   可以看到release发布只有一个app.js，文件大小不到900K。
+   在浏览打开index.html就可以使用了。注意必须关掉浏览器的CORS限制。
 
 * 总结
-  使用netbeans设计GUI,然后从clojure中加载界面代码还是非常方便的。主要是从clojure中调用java非常方便，参考[[https://purelyfunctional.tv/article/clojure-is-a-better-java-than-java/][Clojure is a better Java than Java]]。
+  
