@@ -20,8 +20,9 @@
    并修改命名空间与文件名对应。
 
 ** 设计gui界面
-   使用netbeans新建JFrame form,并设计窗体，修改要用到的widget的name属性为对应的swing id名，然后保存这个文件到src/okex文件夹下，注意包名要用okex,文件内容如下:
-#+INCLUDE: "./okex/src/okex/DepthWindow.java" src java -n
+   使用netbeans新建JFrame form,并设计窗体，修改要用到的widget的name属性为对应的swing id名。
+
+   然后保存这个文件到src/okex文件夹下，注意包名要用okex。窗体设计器自动生成的[[https://github.com/ntestoc3/docs/blob/master/programming/gui/okex/src/okex/DepthWindow.java][DepthWindow.java]]。
 
 ** clojure中加载java gui代码
    修改core.clj，导入gui界面的类，并加载，代码如下:

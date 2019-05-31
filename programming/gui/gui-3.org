@@ -43,6 +43,8 @@
    chromium --disable-web-security --user-data-dir ./chromeuser
 #+end_src
 
+   后来发现[[https://mybrowseraddon.com/access-control-allow-origin.html][Allow CORS]]插件比较好用，支持主流浏览器，建议使用。
+
 ** re-frame的核心思想
    re-frame内部使用一个ratom作为db层进行数据存储[fn:1]。
 
@@ -52,11 +54,11 @@
    通过reg-sub注册对db的访问，在view中通过subscribe订阅注册的sub(订阅者),当sub指向的数据更改，view就会自动刷新。
 
 ** 注册事件
-   主要是修改数据的事件，保存币对信息，设置当前选择的基准货币和交易货币信息，异步请求API数据等。
+   主要是进行数据修改的事件，如:保存币对信息，设置当前选择的基准货币和交易货币信息，保存深度数据和异步请求API等。
    具体参考events.cljs:
 #+INCLUDE: "./okex-web/src/cljs/okex_web/events.cljs" src clojurescript +n   
 
-   注意reg-event-fx和reg-event-db传递的函数参数是不同的，reg-event-db的一个参数是db,reg-event-fx的第一个参数是coeffects[fn:2]。
+   注意reg-event-fx和reg-event-db传递的函数参数是不同的，reg-event-db的第一个参数是db,reg-event-fx的第一个参数是coeffects[fn:2]。
    
 ** 注册订阅
    用于访问db层的数据，具体参考subs.cljs:
@@ -75,8 +77,11 @@
    可以看到release发布只有一个app.js，文件大小不到900K。
    在浏览打开index.html就可以使用了。注意必须关掉浏览器的CORS限制。
 
+#+CAPTION: 网页运行界面截图
+[[./screen.gif]]
+
 * 总结
-  re-frame写SPA程序非常强大,整体架构比较清晰,值得学习。
+  re-frame写SPA程序非常强大,整体架构比较清晰,值得学习。示例项目[[https://github.com/ntestoc3/docs/tree/master/programming/gui/okex-web][完整代码]]。
 
 * Footnotes
 
