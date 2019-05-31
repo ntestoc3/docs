@@ -6,7 +6,7 @@
    [ajax.core :as ajax]
    [goog.string :as gstring]
    [goog.string.format]
-   [com.rpl.specter :as s :refer-macros [select transform]]
+   [com.rpl.specter :as s :refer-macros [select select-one transform]]
    [day8.re-frame.tracing :refer-macros [fn-traced defn-traced]]
    ))
 
@@ -27,9 +27,9 @@
   (let [base-coin (:base-coin db)
         quote-coin (:quote-coin db)]
     (s/select-one [s/ALL
-                   #(and (= (:base-currency %) base-coin)
-                         (= (:quote-currency %) quote-coin))
-                   :instrument-id]
+                   #(and (= (:base_currency %) base-coin)
+                         (= (:quote_currency %) quote-coin))
+                   :instrument_id]
                   (:instruments db))))
 
 (defn get-quote-coins
@@ -101,6 +101,6 @@
 ;;; =================== fx event
 (re-frame/reg-event-fx
  :timer
- (fn [db _]
+ (fn [{:keys [db]} _]
    (when-let [instrument-id (get-instrument-id db)]
      {:dispatch [::fetch-depth-data instrument-id]})))
