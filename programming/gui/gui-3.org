@@ -40,6 +40,13 @@
    对于chrome,使用下面的命令行启动:
    chromium --disable-web-security --user-data-dir ./chromeuser
 
+** re-frame的核心思想
+   re-frame内部使用一个ratom作为db层进行数据存储[fn:1],
+   修改db的事件使用reg-event-db注册，然后其它地方(其它事件中，或者view中)就可以通过dispatch这个事件发布消息(相当于发布者)。
+   通过reg-sub注册对db的访问，在view中通过subscribe订阅注册的sub(订阅者),当sub指向的数据更改，view就会自动刷新。
+
+   
+   
 ** 发布
    使用以下命令编译生成js文件到resources/public文件夹：
 #+begin_src sh
@@ -50,4 +57,7 @@
    在浏览打开index.html就可以使用了。注意必须关掉浏览器的CORS限制。
 
 * 总结
-  
+
+* Footnotes
+
+[fn:1]关于ApplicationState的[[https://github.com/Day8/re-frame/blob/master/docs/ApplicationState.md][官方文档]]

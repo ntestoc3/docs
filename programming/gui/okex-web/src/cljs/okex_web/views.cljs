@@ -71,10 +71,20 @@
      :class "center-block"
      :level :level1]))
 
+(defn error []
+  "显示错误"
+  (let [error (re-frame/subscribe [::subs/error])]
+    (when @error
+      [re-com/alert-box
+       :alert-type :danger
+       :heading (str "错误!!!   " (:path @error))
+       :body [:span (str (:msg @error))]])))
+
 (defn main-panel []
   [:div.container
    [re-com/v-box
     :height "100%"
     :children [[title]
+               [error]
                [depth-view]
                ]]])

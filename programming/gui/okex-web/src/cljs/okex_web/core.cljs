@@ -3,8 +3,6 @@
    [reagent.core :as reagent]
    [re-frame.core :as re-frame]
    [day8.re-frame.http-fx]
-   [okex-web.errors]
-   [okex-web.loadding]
    [okex-web.events :as events]
    [okex-web.views :as views]
    [okex-web.config :as config]

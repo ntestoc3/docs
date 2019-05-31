@@ -11,7 +11,9 @@
    [day8.re-frame.tracing :refer-macros [fn-traced defn-traced]]
    ))
 
+;;;;;;;;;;;;;;;;;;;;;;; helper functions
 (defn format-map-keys
+  "把map的keyword转换为clojure格式"
   [m]
   (s/transform [s/ALL s/MAP-KEYS] csk/->kebab-case-keyword m))
 
@@ -86,26 +88,40 @@
             (re-frame/dispatch [:set-quote-coins (get-quote-coins db base-coin)])
             (assoc db :base-coin base-coin)))
 
+;; 保存错误信息
+(re-frame/reg-event-db
+ :error
+ (fn-traced [db [_ path error]]
+            (assoc db :error {:path path
+                              :msg error})))
+
+(re-frame/reg-event-db
+ :clear-error
+ (fn-traced [db _]
+            (assoc db :error nil)))
+
 ;;; ================ api 请求
 (re-frame/reg-event-fx
  ::fetch-instruments
  (fn-traced [_ _]
-            {:http-xhrio {:method :get
+            {:dispatch [:clear-error]
+             :http-xhrio {:method :get
                           :uri "https://www.okex.com/api/spot/v3/instruments"
                           :timeout 8000
                           :response-format (ajax/json-response-format {:keywords? true})
                           :on-success [:set-instruments]
-                          :on-failure [:fail-load [:fetch-instruments]]}}))
+                          :on-failure [:error [:fetch-instruments]]}}))
 
 (re-frame/reg-event-fx
  ::fetch-depth-data
  (fn-traced [_ [_ instrument-id]]
-            {:http-xhrio {:method :get
+            {:dispatch [:clear-error]
+             :http-xhrio {:method :get
                           :uri (gstring/format "https://www.okex.com/api/spot/v3/instruments/%s/book" instrument-id)
                           :timeout 8000
                           :response-format (ajax/json-response-format {:keywords? true})
                           :on-success [:set-depth-data]
-                          :on-failure [:fail-load [:fetch-depth-data]]}}))
+                          :on-failure [:error [:fetch-depth-data]]}}))
 
 ;;; =================== fx event
 (re-frame/reg-event-fx

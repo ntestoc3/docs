@@ -21,11 +21,11 @@
 
 (re-frame/reg-sub
  ::base-coins
- (fn [db]
-   (->> (:instruments db)
-        (select [s/ALL :base-currency])
-        set
-        sort)))
+ :<- [::instruments]
+ (fn [instruments]
+   (-> (select [s/ALL :base-currency] instruments)
+       set
+       sort)))
 
 (re-frame/reg-sub
  ::quote-coins
@@ -41,3 +41,8 @@
  ::quote-coin
  (fn [db]
    (:quote-coin db)))
+
+(re-frame/reg-sub
+ ::error
+ (fn [db]
+   (:error db)))
