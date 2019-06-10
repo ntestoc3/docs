@@ -1,0 +1,115 @@
+#+TITLE: 解决Metabase pulses发送图片中文乱码的问题
+#+DESCRIPTION: Metabase pulses上一篇已经讲过，但是在测试发送报告的时候，发现中文显示乱码，本文讲解如何解决这个乱码的过程。
+#+KEYWORDS: metabase, clojure, slack
+#+CATEGORIES: 编程, clojure, metabase
+#+LANGUAGE: zh-CN
+#+OPTIONS: ^:t
+
+
+* 简介
+  关于metabase pulses的介绍可以参考上篇文章，对于生成的png图片中文显示乱码的问题，这篇文章把排查问题的过程一步步记录下来。
+
+* 定位问题
+  首先要找到生成png图片的函数。
+
+  在发送图片的时候，可以看到log日志请求
+#+begin_example
+GET /api/pulse/preview_card_info/
+#+end_example
+  在代码中搜索preview\under{}card\under{}info,定位到文件src\metabase\api\pulse.clj,其中有一行宏定义：
+#+begin_src clojure
+api/defendpoint GET "/preview_card_png/:id"
+#+end_src
+  是把card转换为png文件，主要功能跳到src\metabase\pulse\render.clj文件：
+#+begin_src clojure
+render/render-pulse-card-to-png
+render-html-to-png ;; 应该是主要目标了，转换html到png文件。
+#+end_src
+  在repl中测试这个函数，发现输出的图片是能正常显示中文的。
+
+* 测试输出的文件
+  修改render.clj，添加测试代码：
+#+begin_src clojure -n
+;;添加保存doc到html文件的函数
+(import 'org.fit.cssbox.css.NormalOutput)
+(defn write-html
+  "保存doc到文件中"
+  [doc-source file-name]
+  (with-open [out (io/output-stream (io/file file-name))]
+    (->  (NormalOutput. doc-source)
+         (.dumpTo out))))
+
+;;; 然后修改render-to-png 保存html文件
+(defn- render-to-png
+  [^String html, ^ByteArrayOutputStream os, width]
+  (let [is            (ByteArrayInputStream. (.getBytes html StandardCharsets/UTF_8))
+        doc-source    (StreamDocumentSource. is nil "text/html; charset=utf-8")
+        parser        (DefaultDOMSource. doc-source)
+        doc           (.parse parser)
+        window-size   (Dimension. width 1)
+        media         (doto (MediaSpec. "screen")
+                        (.setDimensions       (.width window-size) (.height window-size))
+                        (.setDeviceDimensions (.width window-size) (.height window-size)))
+        da            (doto (DOMAnalyzer. doc (.getURL doc-source))
+                        (.setMediaSpec media)
+                        .attributesToStyles
+                        (.addStyleSheet nil (CSSNorm/stdStyleSheet)   DOMAnalyzer$Origin/AGENT)
+                        (.addStyleSheet nil (CSSNorm/userStyleSheet)  DOMAnalyzer$Origin/AGENT)
+                        (.addStyleSheet nil (CSSNorm/formsStyleSheet) DOMAnalyzer$Origin/AGENT)
+                        .getStyleSheets)
+        content-canvas (doto (BrowserCanvas. (.getRoot da) da (.getURL doc-source))
+                         (.setAutoMediaUpdate false)
+                         (.setAutoSizeUpdate true))]
+    (write-html doc "last-render.html") ;;; 只需要这里加一行，保存最后一次输出的html
+    (doto (.getConfig content-canvas)
+      (.setClipViewport false)
+      (.setLoadImages true)
+      (.setLoadBackgroundImages true))
+    (.createLayout content-canvas window-size)
+    (write-image (.getImage content-canvas) "png" os)))
+
+;;; 修改render-html-to-png 保存生成的png文件
+(s/defn ^:private render-html-to-png :- bytes
+  [{:keys [content]} :- RenderedPulseCard
+   width]
+  (let [html (html [:html [:head
+                           ;; 怀疑文件编码设置问题，加了一个meta做测试
+                           [:meta {:charset "UTF-8"}]]
+                    [:body {:style (style {:margin           0
+                                           :padding          0
+                                           :background-color :white})}
+                     ;; 内置一句中文进行测试
+                     [:p "测试中文"]
+                     content]])
+        os   (ByteArrayOutputStream.)]
+    (render-to-png html os width)
+    ;; 保存最后一次生成的png图片到last-pic.png文件中
+    (let [png-bytes (.toByteArray os)]
+      (with-open [w (io/output-stream "last-pic.png")]
+        (.write w png-bytes)
+        png-bytes))))
+#+end_src
+   保存文件后，重新编译项目:
+#+begin_src sh
+bin/build no-translations
+#+end_src
+   启动metabase后，新建一个pulse,查询结果包含中文，发送目标选择slack,点立即发送进行测试，发现中文还是乱码，不过自己添加的"测试中文"能正常显示,结果图片如下:
+#+CAPTION: 添加测试代码后生成的图片截图
+[[./slack_pic2.png]]
+
+   打开生成的html文件，发现中文编码是正常的，文件编码也是utf-8。
+   
+* 测试其他方法
+  搜索关于html转png图片的文章，有讲到如果中文是方块状，应该是缺少字体。
+  查看生成的html文件，发现生成的文字都有指定font-family属性，于是添加几个中文字体到font-family下，测试还是乱码，尝试把中文字体放在最前面，render.clj文件的font-style函数改为：
+#+begin_src clojure
+;; 修改后的font-style函数
+(defn- font-style []
+  {:font-family "微软雅黑,Microsoft YaHei,SimSun,sans-serif,Helvetica, Arial, sans-serif"})
+#+end_src
+  最后图片成功显示中文。
+#+CAPTION: html2image 成功显示中文
+[[./slack_pic3.png]]
+
+* 总结
+  html输出到图片，中文显示乱码，字体有设置，应该是org.fit.cssbox不会自动适配字体造成的，把中文字体放在第一个，成功解决。

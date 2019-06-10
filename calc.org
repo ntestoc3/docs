@@ -1,0 +1,33 @@
+#+TITLE: web ctf中的计算器
+#+DESCRIPTION: 针对web ctf中的计算器，采用clojure实现获取题目并提交
+#+KEYWORDS: clojure, web ctf
+#+CATEGORIES: clojure, ctf
+#+LANGUAGE: zh-CN
+#+OPTIONS: ^:t
+
+* 简介
+  某ctf的web题是计算器，主要就是考脚本编写能力，自动化提交，整体还算简单。
+  服务端的[[file://calc.php][php文件]]。
+
+* 实现数学表达式计算功
+  使用[[https://github.com/Engelberg/instaparse][instaparse]]这个库，写parser非常方便，虽然有点杀鸡用牛刀，代码如下:
+#+begin_src clojure -n
+(require '[instaparse.core :as insta :refer [defparser]])
+
+(defparser ques-exp
+  "expr = add-sub '='
+<add-sub> = mul-div | add | sub
+add = add-sub <'+'> mul-div
+sub = add-sub <'-'> mul-div
+<mul-div> = term | mul | div
+mul = mul-div <'*'> term
+div = mul-div <'/'> term
+<term> = number
+number = #'[0-9]+'
+"
+  :auto-whitespace :standard ;; ingore space
+  )
+
+
+#+end_src
+  

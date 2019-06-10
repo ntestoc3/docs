@@ -1,0 +1,45 @@
+#+TITLE: 为Metabase Pulses添加slack代理支持
+#+DESCRIPTION: Metabase pulses可以通过slack或者email推送消息，但是不支持代理设置，难以使用。这篇文章讲解如何给slack添加代理支持。
+#+KEYWORDS: metabase, clojure, slack
+#+CATEGORIES: 编程, clojure, metabase
+#+LANGUAGE: zh-CN
+
+
+* 简介
+  Pulses是Metabase中定期报告的叫法，可以通过email或slack发送,具体介绍看[[https://metabase.com/docs/latest/users-guide/10-pulses.html][这里]]。但由于slack无法直接访问的问题，需要配置代理，metabase没有提供代理支持，不过添加代理的功能还是非常简单的，几行代码就解决了问题。
+
+* 代码更改
+  修改文件src\metabase\integrations\slack.clj中的do-slack-request函数，主要用于slack请求，它调用的clj-http实现http请求，添加代理的配置项就可以达到目的。代码修改如下:
+#+begin_src clojure -n
+(defn get-slack-proxy
+  "add slack proxy support"
+  []
+  (let [slack-proxy-host (config/config-str :mb-slack-proxy-host)
+        slack-proxy-port (config/config-int :mb-slack-proxy-port)]
+    (when (and slack-proxy-host slack-proxy-port)
+      {:proxy-host slack-proxy-host
+       :proxy-port slack-proxy-port})))
+
+(defn- do-slack-request [request-fn params-key endpoint & {:keys [token], :as params, :or {token (slack-token)}}]
+  (when token
+    (let [proxy (get-slack-proxy)]
+      (handle-response (request-fn (str slack-api-base-url "/" (name endpoint))
+                                   (merge {params-key (assoc params :token token)
+                                           :as             :stream
+                                           :conn-timeout   1000
+                                           :socket-timeout 1000}
+                                          proxy))))))
+
+#+end_src
+  get-slack-proxy主要从系统配置中读取配置项，config/config-*是metabase读取系统配置的基本方法。然后do-slack-request中添加clj-http的代理配置即可。修改之后重新编译metabase。 然后设置环境变量，windows如下设置:
+#+begin_src bat
+set MB_SLACK_PROXY_HOST=127.0.0.1
+set MB_SLACK_PROXY_PORT=8080
+#+end_src
+  linux使用export设置环境变量。再启动metabase,即可使用此代理访问slack。
+  
+* slack的配置
+  slack的具体配置，参考[[https://metabase.com/docs/latest/administration-guide/09-setting-up-slack.html][官方文档]]。
+
+  新建pulse测试发现收到的图片，中文显示乱码,如下图，下一篇文章再解决。
+[[./slack_pic1.png]]
