@@ -7,10 +7,11 @@
 
 * 简介
   某ctf的web题是计算器，主要就是考脚本编写能力，自动化提交，整体还算简单。
-  服务端的[[file://calc.php][php文件]]。
+  服务端的[[https://github.com/ntestoc3/docs/blob/master/calc.php][php文件]]。
 
-* 实现数学表达式计算功
+* 实现数学表达式计算
   使用[[https://github.com/Engelberg/instaparse][instaparse]]这个库，写parser非常方便，虽然有点杀鸡用牛刀，代码如下:
+
 #+begin_src clojure -n
 (require '[instaparse.core :as insta :refer [defparser]])
 
@@ -25,9 +26,180 @@ div = mul-div <'/'> term
 <term> = number
 number = #'[0-9]+'
 "
-  :auto-whitespace :standard ;; ingore space
+  :auto-whitespace :standard ;; 忽略空格
   )
 
+;;; 测试解析器
+(ques-exp "234 + 55 * 28 = ")
+;; => [:expr [:add [:number "234"] [:mul [:number "55"] [:number "28"]]] "="]
 
+(defn eval-exp
+  "执行表达式"
+  [exp-str]
+  (->> (ques-exp exp-str)
+       (insta/transform {:add +
+                         :sub -
+                         :mul *
+                         :div /
+                         :number clojure.edn/read-string
+                         :expr (fn [a _] a) ;; 忽略右边的=
+                         :sign nil})))
+
+(eval-exp "234 + 55 * 28 = ")
+;; => 1774
+
+(eval-exp "2 * 3 / 2 - 8 + 6 / 3 = ")
+;; => -3
 #+end_src
   
+* 请求表达式和提交计算结果
+  接下来就是请求页面，解析出表达式，并提交结果：
+#+begin_src clojure -n
+(require '[reaver :as html]) ;; 使用Jsoup解析html
+(require '[clj-http.client :as http]) ;; http请求
+(require '[clj-http.cookies :as cookies])
+
+;; 使用统一的cookie,用于保存session
+(def cs (cookies/cookie-store))
+
+(def default-header
+  {:headers {"User-Agent" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.50 Safari/537.36"
+             "Accept-Charset" "utf-8"}
+   ;; 使用本地代理，方便查找问题
+   :proxy-host "127.0.0.1"
+   :proxy-port 8080
+   :cookie-policy :standard
+   :insecure? true
+   })
+
+(def ctf-u "http://192.168.47.129/web/html/index.php")
+
+(defn extract-exp
+  "从html中提取出表达式字符串"
+  [html]
+  (some-> (html/parse html)
+          (html/extract [] "form > div" html/text)
+          (->> (apply str))))
+
+(defn get-question
+  "获取问题"
+  []
+  (-> (http/get ctf-u (merge default-header {:cookie-store cs}))
+      :body
+      extract-exp))
+
+(defn post-ans
+  "提交答案"
+  [ans]
+  (-> (http/post ctf-u (merge default-header
+                              {:cookie-store cs
+                               :form-params ans}))
+      :body))
+
+
+;; 提交一次测试
+(get-question)
+;; => "+3572241+1162006+6727538*7357031-2782980-5908042+5687297*3471162+9574274="
+;; => "+3688345*6914278-7003441+7001140+2403633*2570857+7772803-1273673*2507819="
+
+;; 这次的题目需要前面再加一个数字
+(eval-exp (str "123456" *1))
+;; => 69236240589747
+
+;; 提交一次请求,返回"must input some big number ~"
+(post-ans {:ans *1
+           :input 123456})
+#+end_src
+
+
+  看后面的提示<!--the big number is the fist prime after 1000000 -->,需要计算素数:
+#+begin_src clojure -n
+(def certainty 10)
+
+(defn prime? [n]
+  "n是否为一个素数"
+  (.isProbablePrime (BigInteger/valueOf n) certainty))
+
+(defn gen-prime
+  "从start开始产生一个素数"
+  [start]
+  (first
+   (filter prime?
+           (range start Integer/MAX_VALUE))))
+
+(gen-prime 20)
+;; => 23
+
+(def i1 (gen-prime 1000000))
+
+;; 再请求一次
+(->> (get-question)
+     (str i1)
+     eval-exp
+     (hash-map :input i1 :ans)
+     post-ans)
+
+;; 返回结果还是不对,当然看源码可以知道，生成的素数位数不对,少个0。
+;; 再来一次
+(def i1 (gen-prime 10000000))
+(->> (get-question)
+     (str i1)
+     eval-exp
+     (hash-map :input i1 :ans)
+     post-ans)
+;;; 这一次只有slow down的消息,证明提交的input数字是对的
+#+end_src
+  
+* 循环提交
+  单次提交测试没有问题，就可以循环提交计算结果，直到返回的页面中没有提问，就算计算完成：
+#+begin_src clojure -n
+;; 添加了better-cond依赖，为了使用cond let子句
+(refer-clojure :exclude '[cond])
+(require '[better-cond.core :refer [cond]])
+
+(defn process-answer
+  " 不断请求答案，直到返回的页面中没有提问
+  `format-fn` 格式化请求返回的表达式
+  `answer-fn` 格式化提交的form内容"
+  [{:keys [format-fn answer-fn]
+    :or {format-fn identity
+         answer-fn #(hash-map :ans %)}}]
+  (loop [ques (get-question)
+         result ""]
+    (cond
+      (empty? ques) result
+
+      ;; 计算表达式
+      :let [ans (-> (format-fn ques)
+                    (doto println)
+                    (eval-exp))]
+
+      ;; 表达式计算错误
+      (insta/failure? ans) (println :process "no eval result for" ques)
+
+      ;; 提交结果
+      :let [r (-> (answer-fn ans)
+                  (post-ans))]
+
+      (do
+        (println :process "question:" ques "anser:" ans)
+        (recur (extract-exp r)
+               r)))))
+
+(process-answer {:format-fn #(str i1 %)
+                 :answer-fn #(hash-map :input i1 :ans %)})
+
+#+end_src
+
+   可以看到post提交答案，返回的都是slow down,现在加入延时,延时数字要自己调整，当然看了代码才知道是2-3秒:
+#+begin_src clojure -n
+(process-answer {:format-fn #(str i1 %)
+                 :answer-fn (fn [e]
+                              (Thread/sleep 2000.)
+                              {:ans e
+                               :input i1})})
+;; => "\n\t\t<script language=\"javascript\">  \n\t\talert(\"right answer\");  \n\t     </script> got flag....................."
+#+end_src
+
+* 总结
+  考察的就是基本的脚本编程能力，http GET/POST请求，表达式解析计算。
