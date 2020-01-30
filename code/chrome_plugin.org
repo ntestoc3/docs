@@ -1,0 +1,125 @@
+#+TITLE: 使用ClojureScript进行chrome扩展开发
+#+DESCRIPTION: 学习使用ClojureScript开发chrome扩展
+#+KEYWORDS: programming, chrome extension, ClojureScript
+#+CATEGORIES: 编程,web
+#+LANGUAGE: zh-CN
+
+
+* 简介
+  学习使用ClojureScript，使用[[https://github.com/binaryage/chromex][chromex]]库，进行chrome扩展开发。chrome只是包装了chrome扩展的api,并把回调模型包装成事件模型，具体参考chromex的指南。
+
+  基础的chrome扩展开发知识参考[[https://www.cnblogs.com/liuxianan/p/chrome-plugin-develop.html][Chrome插件(扩展)开发全攻略]]，基本概念写的很清楚。一个chrome扩展主要由background、popup、content-script三个独立的部分组成。通过mainfest.json对扩展进行配置。扩展页面之间的通信参考[[https://www.cnblogs.com/liuxianan/p/chrome-plugin-develop.html#%E6%B6%88%E6%81%AF%E9%80%9A%E4%BF%A1][消息通信]]。
+
+  ClojureScript是编译目标为JavaScript的clojure实现。主要学习下和JS的互操作[[http://www.spacjer.com/blog/2014/09/12/clojurescript-javascript-interop/][ClojureScript: JavaScript Interop]]。
+
+  示例扩展的目的是实现[[http://www.8080s.net][视频网站]]的剧集更新监控，发现有新的剧集，则给出提醒，并提供下载地址,popup界面如下：
+
+#+CAPTION: 追剧提醒的popup界面
+#+NAME: fig:1
+[[./popup.png]]
+
+* 项目配置
+  添加相应依赖项,
+  ClojureScript编译管理使用[[https://figwheel.org/docs/][figwheel-main]]代替lein figwheel，popup界面使用reagent实现,dom操作使用dommy库。
+
+#+CAPTION: project.clj
+#+include: "~/chromex/examples/movmon/project.clj" :src clojure
+  
+#+CAPTION: background配置项: background.cljs.edn
+#+include: "/home/ntestu/chromex/examples/movmon/background.cljs.edn" :src clojure
+
+#+CAPTION: popup配置项: popup.cljs.edn
+#+include: "/home/ntestu/chromex/examples/movmon/popup.cljs.edn" :src clojure
+
+   由于不需要修改打开的网页，因此不需要content-script。
+
+   manifest.json扩展配置项如下,主要是权限设置：
+#+include: "/home/ntestu/chromex/examples/movmon/resources/unpacked/manifest.json" :src json
+
+* 数据存储设计
+  由于需要定时进行监控剧集更新，只能放到background中运行，popup只有点开扩展图标的时候才能运行，不符合需求。
+  使用LocalStorage保存相关数据，需要保存每个监控数据的相关信息和更新数量的统计。为了方便查看chrome扩展的本地存储，安装了[[https://chrome.google.com/webstore/detail/ocfjjjjhkpapocigimmppepjgfdecjkb][Storage Area Explorer]]扩展。
+ 
+#+CAPTION: 保存监控数据的LocalStorage
+#+NAME: fig:2
+[[./storage.png]]
+
+  monitors保存所有的监控项，以剧集名作为键，保存每一集的名字和下载地址，是否为最近更新，和剧集的url地址。格式如下：
+#+begin_src json
+{
+	"在不白不黑的世界里，熊猫笑了 (2020)": {
+		"data": [
+			{
+				"name": "在不白不黑的世界里，熊猫笑了 - 第03集",
+				"url": "http://caizi.meizuida.com/2001/在不白不黑的世界里，熊猫笑了-03.mp4"
+			},
+			{
+				"name": "在不白不黑的世界里，熊猫笑了 - 第02集",
+				"url": "http://ok.renzuida.com/2001/在不白不黑的世界里，熊猫笑了-02.mp4"
+			},
+			{
+				"name": "在不白不黑的世界里，熊猫笑了 - 第01集",
+				"url": "http://ok.renzuida.com/2001/在不白不黑的世界里，熊猫笑了-01.mp4"
+			}
+		],
+		"new": false,
+		"url": "http://www.8080s.net/ju/35027"
+	}
+}
+#+end_src
+
+  new-count保存最近更新的剧集总数量,用于扩展的badge显示。
+#+CAPTION: 扩展的badge显示
+#+NAME: fig:3
+[[./badge.png]]
+
+  数据相关的代码如下：
+#+CAPTION: src/background/movmon/background/storage.cljs
+#+include: "/home/ntestu/chromex/examples/movmon/src/background/movmon/background/storage.cljs" :src clojure
+
+* 后台监控更新
+  定时访问剧集url的下载数据，并检查是否有更新，并保存新的剧集。
+
+#+CAPTION: src/background/movmon/background/core.cljs 检查数据更新的代码
+#+include:  "/home/ntestu/chromex/examples/movmon/src/background/movmon/background/core.cljs" src clojure :lines "92-117"
+
+#+CAPTION: src/background/movmon/background/core.cljs 使用异步回调方式,访问剧集网址检查更新
+#+include:  "/home/ntestu/chromex/examples/movmon/src/background/movmon/background/core.cljs" src clojure :lines "117-125"
+
+
+#+CAPTION: src/background/movmon/background/core.cljs background初始化代码，定时监控，更新badge,启动事件循环处理
+#+include:  "/home/ntestu/chromex/examples/movmon/src/background/movmon/background/core.cljs" src clojure :lines "238-"
+
+
+   background完整处理[[https://github.com/ntestoc3/movmon/blob/master/src/background/movmon/background/core.cljs][代码]]。
+
+* popup页面处理
+  主要是popup页面的显示和background的通信处理。
+  
+#+CAPTION: src/popup/movmon/popup/core.cljs 发送消息给background
+#+include: "/home/ntestu/chromex/examples/movmon/src/popup/movmon/popup/core.cljs" src clojure :lines "50-58"
+  注意发送的消息使用js格式，不能使用edn。
+
+  页面显示使用reagent实现，参考[[https://reagent-project.github.io/][示例]]。
+#+CAPTION: src/popup/movmon/popup/core.cljs 监控面板显示
+#+include: "/home/ntestu/chromex/examples/movmon/src/popup/movmon/popup/core.cljs" src clojure :lines "142-175"
+ 
+  popup页面的[[https://github.com/ntestoc3/movmon/blob/master/src/popup/movmon/popup/core.cljs][完整代码]]。
+
+* 开发与发布过程
+  开发过程使用emacs+cider插件，选择figwheel-main启动即可，不过chrome扩展包含多个编译项目，需要同时启动多个编译项,如下所示，popup启动为后台构建，background为前台构建，即当前启动的ClojureScript REPL环境为background：
+#+begin_src clojure
+:cljs/quit
+(require '[figwheel.main.api :as fig])
+(fig/stop-all)
+(fig/start  :background :popup)
+#+end_src
+
+  启动后会按照项目配置自动编译到resources/unpacked/文件夹，在chrome的扩展程序设置中启用开发者模式，加载已解压的扩展程序，指向resources/unpacked/文件夹即可。
+
+  如果是release发布，在项目根目录执行lein release,编译优化后的js文件到resources/release/文件夹下即可。可以使用chrome浏览器加载、打包,或发布到chrome web store。
+
+* 总结
+  学习了chrome扩展开发的方法。ClojureScript和JavaScript之间的互操作。figwheel-main构建管理的方法。
+
+

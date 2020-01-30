@@ -1,0 +1,749 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
+<head>
+<!-- 2020-01-30 四 13:14 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>使用ClojureScript进行chrome扩展开发</title>
+<meta name="generator" content="Org mode" />
+<meta name="author" content="ntestoc" />
+<meta name="description" content="学习使用ClojureScript开发chrome扩展"
+ />
+<meta name="keywords" content="programming, chrome extension, ClojureScript" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { width: 90%; }
+  /*]]>*/-->
+</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2020 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">使用ClojureScript进行chrome扩展开发</h1>
+<div id="table-of-contents">
+<h2>&#30446;&#24405;</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#orga90ccd8">1. 简介</a></li>
+<li><a href="#org79fe7d0">2. 项目配置</a></li>
+<li><a href="#orgffd4b2d">3. 数据存储设计</a></li>
+<li><a href="#org914f9a0">4. 后台监控更新</a></li>
+<li><a href="#org93e4723">5. popup页面处理</a></li>
+<li><a href="#org34c7997">6. 开发与发布过程</a></li>
+<li><a href="#org74f1385">7. 总结</a></li>
+</ul>
+</div>
+</div>
+
+
+<div id="outline-container-orga90ccd8" class="outline-2">
+<h2 id="orga90ccd8"><span class="section-number-2">1</span> 简介</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+学习使用ClojureScript，使用<a href="https://github.com/binaryage/chromex">chromex</a>库，进行chrome扩展开发。chrome只是包装了chrome扩展的api,并把回调模型包装成事件模型，具体参考chromex的指南。
+</p>
+
+<p>
+基础的chrome扩展开发知识参考<a href="https://www.cnblogs.com/liuxianan/p/chrome-plugin-develop.html">Chrome插件(扩展)开发全攻略</a>，基本概念写的很清楚。一个chrome扩展主要由background、popup、content-script三个独立的部分组成。通过mainfest.json对扩展进行配置。扩展页面之间的通信参考<a href="https://www.cnblogs.com/liuxianan/p/chrome-plugin-develop.html#%E6%B6%88%E6%81%AF%E9%80%9A%E4%BF%A1">消息通信</a>。
+</p>
+
+<p>
+ClojureScript是编译目标为JavaScript的clojure实现。主要学习下和JS的互操作<a href="http://www.spacjer.com/blog/2014/09/12/clojurescript-javascript-interop/">ClojureScript: JavaScript Interop</a>。
+</p>
+
+<p>
+示例扩展的目的是实现<a href="http://www.8080s.net">视频网站</a>的剧集更新监控，发现有新的剧集，则给出提醒，并提供下载地址,popup界面如下：
+</p>
+
+
+<div id="orga9ae7d1" class="figure">
+<p><img src="./popup.png" alt="popup.png" />
+</p>
+<p><span class="figure-number">&#22270;1&nbsp; </span>追剧提醒的popup界面</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org79fe7d0" class="outline-2">
+<h2 id="org79fe7d0"><span class="section-number-2">2</span> 项目配置</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+添加相应依赖项,
+ClojureScript编译管理使用<a href="https://figwheel.org/docs/">figwheel-main</a>代替lein figwheel，popup界面使用reagent实现,dom操作使用dommy库。
+</p>
+
+<div class="org-src-container">
+<label class="org-src-name"><span class="listing-number">&#20195;&#30721;1&nbsp; </span>project.clj</label><pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defproject</span> <span style="color: #bc6ec5; font-weight: bold;">movmon</span> <span style="color: #2d9574;">"0.1.0-SNAPSHOT"</span>
+  <span style="color: #a45bad;">:dependencies</span> <span style="color: #bc6ec5;">[</span><span style="color: #2d9574;">[</span><span style="color: #ce537a; font-weight: bold;">org.clojure</span>/clojure <span style="color: #2d9574;">"1.10.1"</span><span style="color: #2d9574;">]</span>
+                 <span style="color: #2d9574;">[</span><span style="color: #ce537a; font-weight: bold;">org.clojure</span>/clojurescript <span style="color: #2d9574;">"1.10.520"</span><span style="color: #2d9574;">]</span>
+                 <span style="color: #2d9574;">[</span><span style="color: #ce537a; font-weight: bold;">org.clojure</span>/core.async <span style="color: #2d9574;">"0.4.500"</span><span style="color: #2d9574;">]</span>
+                 <span style="color: #2d9574;">[</span><span style="color: #ce537a; font-weight: bold;">binaryage</span>/chromex <span style="color: #2d9574;">"0.8.4"</span><span style="color: #2d9574;">]</span>
+                 <span style="color: #2d9574;">[</span><span style="color: #ce537a; font-weight: bold;">binaryage</span>/devtools <span style="color: #2d9574;">"0.9.10"</span><span style="color: #2d9574;">]</span>
+                 <span style="color: #2d9574;">[</span><span style="color: #ce537a; font-weight: bold;">prismatic</span>/dommy <span style="color: #2d9574;">"1.1.0"</span><span style="color: #2d9574;">]</span>
+                 <span style="color: #2d9574;">[</span>cljs-ajax <span style="color: #2d9574;">"0.8.0"</span><span style="color: #2d9574;">]</span>
+                 <span style="color: #2d9574;">[</span><span style="color: #ce537a; font-weight: bold;">binaryage</span>/oops <span style="color: #2d9574;">"0.7.0"</span><span style="color: #2d9574;">]</span>
+                 <span style="color: #2d9574;">[</span>reagent <span style="color: #2d9574;">"0.9.0-rc4"</span><span style="color: #2d9574;">]</span>
+                 <span style="color: #2aa1ae; background-color: #292e34;">;;</span><span style="color: #2aa1ae; background-color: #292e34;">[com.bhauman/figwheel-main "0.2.3"]</span>
+                 <span style="color: #2aa1ae; background-color: #292e34;">;;</span><span style="color: #2aa1ae; background-color: #292e34;">[com.bhauman/rebel-readline-cljs "0.1.4"]</span>
+                 <span style="color: #2d9574;">[</span>environ <span style="color: #2d9574;">"1.1.0"</span><span style="color: #2d9574;">]</span><span style="color: #bc6ec5;">]</span>
+
+  <span style="color: #a45bad;">:plugins</span> <span style="color: #bc6ec5;">[</span><span style="color: #2d9574;">[</span>lein-cljsbuild <span style="color: #2d9574;">"1.1.7"</span><span style="color: #a45bad;">:exclusions</span> <span style="color: #67b11d;">[</span><span style="color: #b1951d;">[</span><span style="color: #a45bad; font-weight: bold;">org.clojure</span><span style="color: #a45bad;">/clojure</span><span style="color: #b1951d;">]</span><span style="color: #67b11d;">]</span><span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">[</span>lein-shell <span style="color: #2d9574;">"0.5.0"</span><span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">[</span>lein-environ <span style="color: #2d9574;">"1.1.0"</span><span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">[</span>lein-cooper <span style="color: #2d9574;">"1.2.2"</span><span style="color: #2d9574;">]</span><span style="color: #bc6ec5;">]</span>
+
+  <span style="color: #a45bad;">:source-paths</span> <span style="color: #bc6ec5;">[</span><span style="color: #2d9574;">"src/background"</span>
+                 <span style="color: #2d9574;">"src/popup"</span>
+                 <span style="color: #2d9574;">"resources"</span><span style="color: #bc6ec5;">]</span>
+
+  <span style="color: #a45bad;">:clean-targets</span> ^<span style="color: #bc6ec5;">{</span><span style="color: #a45bad;">:protect</span> <span style="color: #a45bad;">false</span><span style="color: #bc6ec5;">}</span> <span style="color: #bc6ec5;">[</span><span style="color: #2d9574;">"target"</span>
+                                    <span style="color: #2d9574;">"resources/unpacked/compiled"</span>
+                                    <span style="color: #2d9574;">"resources/release/compiled"</span><span style="color: #bc6ec5;">]</span>
+
+  <span style="color: #a45bad;">:profiles</span> <span style="color: #bc6ec5;">{</span><span style="color: #a45bad;">:dev</span>
+             <span style="color: #2d9574;">{</span><span style="color: #a45bad;">:dependencies</span> <span style="color: #67b11d;">[</span><span style="color: #b1951d;">[</span><span style="color: #ce537a; font-weight: bold;">cider</span>/piggieback <span style="color: #2d9574;">"0.4.2"</span><span style="color: #b1951d;">]</span>
+                             <span style="color: #b1951d;">[</span><span style="color: #ce537a; font-weight: bold;">com.bhauman</span>/figwheel-main <span style="color: #2d9574;">"0.2.3"</span><span style="color: #b1951d;">]</span>
+                             <span style="color: #b1951d;">[</span><span style="color: #ce537a; font-weight: bold;">com.bhauman</span>/rebel-readline-cljs <span style="color: #2d9574;">"0.1.4"</span><span style="color: #b1951d;">]</span>
+                             <span style="color: #67b11d;">]</span>
+              <span style="color: #a45bad;">:repl-options</span> <span style="color: #67b11d;">{</span><span style="color: #a45bad;">:nrepl-middleware</span> <span style="color: #b1951d;">[</span><span style="color: #ce537a; font-weight: bold;">cider.piggieback</span>/wrap-cljs-repl<span style="color: #b1951d;">]</span><span style="color: #67b11d;">}</span><span style="color: #2d9574;">}</span>
+
+
+             <span style="color: #a45bad;">:release</span>
+             <span style="color: #2d9574;">{</span><span style="color: #a45bad;">:env</span>       <span style="color: #67b11d;">{</span><span style="color: #a45bad;">:chromex-elide-verbose-logging</span> <span style="color: #2d9574;">"true"</span><span style="color: #67b11d;">}</span>
+              <span style="color: #a45bad;">:cljsbuild</span> <span style="color: #67b11d;">{</span><span style="color: #a45bad;">:builds</span>
+                          <span style="color: #b1951d;">{</span><span style="color: #a45bad;">:background</span>
+                           <span style="color: #4f97d7;">{</span><span style="color: #a45bad;">:source-paths</span> <span style="color: #bc6ec5;">[</span><span style="color: #2d9574;">"src/background"</span><span style="color: #bc6ec5;">]</span>
+                            <span style="color: #a45bad;">:compiler</span>     <span style="color: #bc6ec5;">{</span><span style="color: #a45bad;">:output-to</span>     <span style="color: #2d9574;">"resources/release/compiled/background.js"</span>
+                                           <span style="color: #a45bad;">:output-dir</span>    <span style="color: #2d9574;">"resources/release/compiled/background"</span>
+                                           <span style="color: #a45bad;">:asset-path</span>    <span style="color: #2d9574;">"compiled/background"</span>
+                                           <span style="color: #a45bad;">:main</span>          movmon.background
+                                           <span style="color: #a45bad;">:optimizations</span> <span style="color: #a45bad;">:advanced</span>
+                                           <span style="color: #a45bad;">:elide-asserts</span> <span style="color: #a45bad;">true</span><span style="color: #bc6ec5;">}</span><span style="color: #4f97d7;">}</span>
+                           <span style="color: #a45bad;">:popup</span>
+                           <span style="color: #4f97d7;">{</span><span style="color: #a45bad;">:source-paths</span> <span style="color: #bc6ec5;">[</span><span style="color: #2d9574;">"src/popup"</span><span style="color: #bc6ec5;">]</span>
+                            <span style="color: #a45bad;">:compiler</span>     <span style="color: #bc6ec5;">{</span><span style="color: #a45bad;">:output-to</span>     <span style="color: #2d9574;">"resources/release/compiled/popup.js"</span>
+                                           <span style="color: #a45bad;">:output-dir</span>    <span style="color: #2d9574;">"resources/release/compiled/popup"</span>
+                                           <span style="color: #a45bad;">:asset-path</span>    <span style="color: #2d9574;">"compiled/popup"</span>
+                                           <span style="color: #a45bad;">:main</span>          movmon.popup
+                                           <span style="color: #a45bad;">:optimizations</span> <span style="color: #a45bad;">:advanced</span>
+                                           <span style="color: #a45bad;">:elide-asserts</span> <span style="color: #a45bad;">true</span><span style="color: #bc6ec5;">}</span><span style="color: #4f97d7;">}</span>
+                           <span style="color: #b1951d;">}</span><span style="color: #67b11d;">}</span><span style="color: #2d9574;">}</span><span style="color: #bc6ec5;">}</span>
+
+  <span style="color: #a45bad;">:aliases</span> <span style="color: #bc6ec5;">{</span>
+            <span style="color: #2d9574;">"fig-main"</span> <span style="color: #2d9574;">[</span><span style="color: #2d9574;">"trampoline"</span> <span style="color: #2d9574;">"run"</span> <span style="color: #2d9574;">"-m"</span> <span style="color: #2d9574;">"figwheel.main"</span> <span style="color: #2d9574;">"-bb"</span> <span style="color: #2d9574;">"popup"</span>  <span style="color: #2d9574;">"-b"</span> <span style="color: #2d9574;">"background"</span> <span style="color: #2d9574;">"-r"</span><span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">"release"</span>         <span style="color: #2d9574;">[</span><span style="color: #2d9574;">"with-profile"</span> <span style="color: #2d9574;">"+release"</span> <span style="color: #2d9574;">"do"</span>
+                               <span style="color: #67b11d;">[</span><span style="color: #2d9574;">"clean"</span><span style="color: #67b11d;">]</span>
+                               <span style="color: #67b11d;">[</span><span style="color: #2d9574;">"cljsbuild"</span> <span style="color: #2d9574;">"once"</span> <span style="color: #2d9574;">"background"</span> <span style="color: #2d9574;">"popup"</span><span style="color: #67b11d;">]</span><span style="color: #2d9574;">]</span>
+           <span style="color: #bc6ec5;">}</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+
+<div class="org-src-container">
+<label class="org-src-name"><span class="listing-number">&#20195;&#30721;2&nbsp; </span>background配置项: background.cljs.edn</label><pre class="src src-clojure">^<span style="color: #4f97d7;">{</span><span style="color: #a45bad;">:watch-dirs</span> <span style="color: #bc6ec5;">[</span><span style="color: #2d9574;">"src/background"</span><span style="color: #bc6ec5;">]</span><span style="color: #4f97d7;">}</span>
+<span style="color: #4f97d7;">{</span><span style="color: #a45bad;">:output-to</span>     <span style="color: #2d9574;">"resources/unpacked/compiled/background/main.js"</span>
+ <span style="color: #a45bad;">:output-dir</span>    <span style="color: #2d9574;">"resources/unpacked/compiled/background"</span>
+ <span style="color: #a45bad;">:asset-path</span>    <span style="color: #2d9574;">"compiled/background"</span>
+ <span style="color: #a45bad;">:preloads</span>      <span style="color: #bc6ec5;">[</span>devtools.preload figwheel.core figwheel.main figwheel.repl.preload<span style="color: #bc6ec5;">]</span>
+ <span style="color: #a45bad;">:main</span>          movmon.background
+ <span style="color: #a45bad;">:optimizations</span> <span style="color: #a45bad;">:none</span>
+ <span style="color: #a45bad;">:source-map</span>    <span style="color: #a45bad;">true</span><span style="color: #4f97d7;">}</span>
+</pre>
+</div>
+
+<div class="org-src-container">
+<label class="org-src-name"><span class="listing-number">&#20195;&#30721;3&nbsp; </span>popup配置项: popup.cljs.edn</label><pre class="src src-clojure">^<span style="color: #4f97d7;">{</span><span style="color: #a45bad;">:watch-dirs</span> <span style="color: #bc6ec5;">[</span><span style="color: #2d9574;">"src/popup"</span><span style="color: #bc6ec5;">]</span><span style="color: #4f97d7;">}</span>
+<span style="color: #4f97d7;">{</span><span style="color: #a45bad;">:output-to</span>     <span style="color: #2d9574;">"resources/unpacked/compiled/popup/main.js"</span>
+ <span style="color: #a45bad;">:output-dir</span>    <span style="color: #2d9574;">"resources/unpacked/compiled/popup"</span>
+ <span style="color: #a45bad;">:asset-path</span>    <span style="color: #2d9574;">"compiled/popup"</span>
+ <span style="color: #a45bad;">:preloads</span>      <span style="color: #bc6ec5;">[</span>devtools.preload figwheel.core figwheel.main figwheel.repl.preload<span style="color: #bc6ec5;">]</span>
+ <span style="color: #a45bad;">:main</span>          movmon.popup
+ <span style="color: #a45bad;">:optimizations</span> <span style="color: #a45bad;">:none</span>
+ <span style="color: #a45bad;">:source-map</span>    <span style="color: #a45bad;">true</span><span style="color: #4f97d7;">}</span>
+</pre>
+</div>
+
+<p>
+由于不需要修改打开的网页，因此不需要content-script。
+</p>
+
+<p>
+manifest.json扩展配置项如下,主要是权限设置：
+</p>
+<div class="org-src-container">
+<pre class="src src-json">/* this manifest is for development only
+   we include all files individually
+   also we allow unsafe eval for figwheel
+*/
+<span style="color: #4f97d7;">{</span>
+    <span style="color: #4f97d7; font-weight: bold;">"name"</span>: <span style="color: #2d9574;">"&#36861;&#21095;&#25552;&#37266;"</span>,
+    <span style="color: #4f97d7; font-weight: bold;">"version"</span>: "<span style="color: #a45bad;">0</span>.<span style="color: #a45bad;">1</span>.<span style="color: #a45bad;">0</span>",
+    <span style="color: #4f97d7; font-weight: bold;">"description"</span>: "&#38024;&#23545;www.<span style="color: #a45bad;">8080s</span>.net&#30340;&#36861;&#21095;&#25552;&#37266;",
+    <span style="color: #4f97d7; font-weight: bold;">"browser_action"</span>: <span style="color: #bc6ec5;">{</span>
+        <span style="color: #4f97d7; font-weight: bold;">"default_title"</span>: <span style="color: #2d9574;">"&#36861;&#21095;&#25552;&#37266;"</span>,
+        <span style="color: #4f97d7; font-weight: bold;">"default_popup"</span>: <span style="color: #2d9574;">"popup.html"</span>,
+        <span style="color: #4f97d7; font-weight: bold;">"default_icon"</span>: <span style="color: #2d9574;">{</span>
+            "<span style="color: #a45bad;">19</span>": <span style="color: #2d9574;">"images/icon19.png"</span>,
+            "<span style="color: #a45bad;">38</span>": <span style="color: #2d9574;">"images/icon38.png"</span>
+        <span style="color: #2d9574;">}</span>
+    <span style="color: #bc6ec5;">}</span>,
+    <span style="color: #4f97d7; font-weight: bold;">"icons"</span>: <span style="color: #bc6ec5;">{</span>
+        "<span style="color: #a45bad;">16</span>": <span style="color: #2d9574;">"images/icon16.png"</span>,
+        "<span style="color: #a45bad;">48</span>": <span style="color: #2d9574;">"images/icon48.png"</span>,
+        "<span style="color: #a45bad;">128</span>": <span style="color: #2d9574;">"images/icon128.png"</span>
+    <span style="color: #bc6ec5;">}</span>,
+    <span style="color: #4f97d7; font-weight: bold;">"background"</span>: <span style="color: #bc6ec5;">{</span>
+        <span style="color: #4f97d7; font-weight: bold;">"page"</span>: <span style="color: #2d9574;">"background.html"</span>,
+        <span style="color: #4f97d7; font-weight: bold;">"persistent"</span>: <span style="color: #a45bad;">false</span>
+    <span style="color: #bc6ec5;">}</span>,
+    <span style="color: #4f97d7; font-weight: bold;">"permissions"</span>: <span style="color: #bc6ec5;">[</span>
+        <span style="color: #2d9574;">"nativeMessaging"</span>,
+        <span style="color: #2d9574;">"notifications"</span>,
+        <span style="color: #2d9574;">"storage"</span>,
+        "http://www.<span style="color: #a45bad;">8080s</span>.net/*"
+    <span style="color: #bc6ec5;">]</span>,
+    <span style="color: #4f97d7; font-weight: bold;">"manifest_version"</span>: <span style="color: #a45bad;">2</span>
+<span style="color: #4f97d7;">}</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgffd4b2d" class="outline-2">
+<h2 id="orgffd4b2d"><span class="section-number-2">3</span> 数据存储设计</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+由于需要定时进行监控剧集更新，只能放到background中运行，popup只有点开扩展图标的时候才能运行，不符合需求。
+使用LocalStorage保存相关数据，需要保存每个监控数据的相关信息和更新数量的统计。为了方便查看chrome扩展的本地存储，安装了<a href="https://chrome.google.com/webstore/detail/ocfjjjjhkpapocigimmppepjgfdecjkb">Storage Area Explorer</a>扩展。
+</p>
+
+
+<div id="org5386ada" class="figure">
+<p><img src="./storage.png" alt="storage.png" />
+</p>
+<p><span class="figure-number">&#22270;2&nbsp; </span>保存监控数据的LocalStorage</p>
+</div>
+
+<p>
+monitors保存所有的监控项，以剧集名作为键，保存每一集的名字和下载地址，是否为最近更新，和剧集的url地址。格式如下：
+</p>
+<div class="org-src-container">
+<pre class="src src-json"><span style="color: #4f97d7;">{</span>
+  "&#22312;&#19981;&#30333;&#19981;&#40657;&#30340;&#19990;&#30028;&#37324;&#65292;&#29066;&#29483;&#31505;&#20102; (<span style="color: #a45bad;">2020</span>)": <span style="color: #bc6ec5;">{</span>
+    <span style="color: #4f97d7; font-weight: bold;">"data"</span>: <span style="color: #2d9574;">[</span>
+      <span style="color: #67b11d;">{</span>
+        <span style="color: #4f97d7; font-weight: bold;">"name"</span>: <span style="color: #2d9574;">"&#22312;&#19981;&#30333;&#19981;&#40657;&#30340;&#19990;&#30028;&#37324;&#65292;&#29066;&#29483;&#31505;&#20102; - &#31532;03&#38598;"</span>,
+        <span style="color: #4f97d7; font-weight: bold;">"url"</span>: "http://caizi.meizuida.com/<span style="color: #a45bad;">2001</span>/&#22312;&#19981;&#30333;&#19981;&#40657;&#30340;&#19990;&#30028;&#37324;&#65292;&#29066;&#29483;&#31505;&#20102;-<span style="color: #a45bad;">03</span>.mp<span style="color: #a45bad;">4</span>"
+      <span style="color: #67b11d;">}</span>,
+      <span style="color: #67b11d;">{</span>
+        <span style="color: #4f97d7; font-weight: bold;">"name"</span>: <span style="color: #2d9574;">"&#22312;&#19981;&#30333;&#19981;&#40657;&#30340;&#19990;&#30028;&#37324;&#65292;&#29066;&#29483;&#31505;&#20102; - &#31532;02&#38598;"</span>,
+        <span style="color: #4f97d7; font-weight: bold;">"url"</span>: "http://ok.renzuida.com/<span style="color: #a45bad;">2001</span>/&#22312;&#19981;&#30333;&#19981;&#40657;&#30340;&#19990;&#30028;&#37324;&#65292;&#29066;&#29483;&#31505;&#20102;-<span style="color: #a45bad;">02</span>.mp<span style="color: #a45bad;">4</span>"
+      <span style="color: #67b11d;">}</span>,
+      <span style="color: #67b11d;">{</span>
+        <span style="color: #4f97d7; font-weight: bold;">"name"</span>: <span style="color: #2d9574;">"&#22312;&#19981;&#30333;&#19981;&#40657;&#30340;&#19990;&#30028;&#37324;&#65292;&#29066;&#29483;&#31505;&#20102; - &#31532;01&#38598;"</span>,
+        <span style="color: #4f97d7; font-weight: bold;">"url"</span>: "http://ok.renzuida.com/<span style="color: #a45bad;">2001</span>/&#22312;&#19981;&#30333;&#19981;&#40657;&#30340;&#19990;&#30028;&#37324;&#65292;&#29066;&#29483;&#31505;&#20102;-<span style="color: #a45bad;">01</span>.mp<span style="color: #a45bad;">4</span>"
+      <span style="color: #67b11d;">}</span>
+    <span style="color: #2d9574;">]</span>,
+    <span style="color: #4f97d7; font-weight: bold;">"new"</span>: <span style="color: #a45bad;">false</span>,
+    <span style="color: #4f97d7; font-weight: bold;">"url"</span>: "http://www.<span style="color: #a45bad;">8080s</span>.net/ju/<span style="color: #a45bad;">35027</span>"
+  <span style="color: #bc6ec5;">}</span>
+<span style="color: #4f97d7;">}</span>
+</pre>
+</div>
+
+<p>
+new-count保存最近更新的剧集总数量,用于扩展的badge显示。
+</p>
+
+<div id="org80582e2" class="figure">
+<p><img src="./badge.png" alt="badge.png" />
+</p>
+<p><span class="figure-number">&#22270;3&nbsp; </span>扩展的badge显示</p>
+</div>
+
+<p>
+数据相关的代码如下：
+</p>
+<div class="org-src-container">
+<label class="org-src-name"><span class="listing-number">&#20195;&#30721;4&nbsp; </span>src/background/movmon/background/storage.cljs</label><pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">ns</span> <span style="color: #ce537a; font-weight: bold;">movmon.background.storage</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #a45bad;">:require-macros</span> <span style="color: #2d9574;">[</span>cljs.core.async.macros <span style="color: #a45bad;">:refer</span> <span style="color: #67b11d;">[</span>go go-loop<span style="color: #67b11d;">]</span><span style="color: #2d9574;">]</span><span style="color: #bc6ec5;">)</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #a45bad;">:require</span> <span style="color: #2d9574;">[</span>cljs.core.async <span style="color: #a45bad;">:refer</span> <span style="color: #67b11d;">[</span>&lt;! chan<span style="color: #67b11d;">]</span><span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">[</span>chromex.logging <span style="color: #a45bad;">:refer-macros</span> <span style="color: #67b11d;">[</span>log info warn error group group-end<span style="color: #67b11d;">]</span><span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">[</span>oops.core <span style="color: #a45bad;">:refer</span> <span style="color: #67b11d;">[</span>oget oset! ocall oapply ocall! oapply!
+                               oget+ oset!+ ocall+ oapply+ ocall!+ oapply!+<span style="color: #67b11d;">]</span><span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">[</span>chromex.protocols.chrome-storage-area <span style="color: #a45bad;">:as</span> sa<span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">[</span>chromex.ext.storage <span style="color: #a45bad;">:as</span> storage<span style="color: #2d9574;">]</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">get-storage-key</span>
+  <span style="color: #bc6ec5;">[</span>k<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>local-storage <span style="color: #67b11d;">(</span><span style="color: #ce537a; font-weight: bold;">storage</span>/get-local<span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span>go
+      <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #b1951d;">[</span><span style="color: #4f97d7;">[</span><span style="color: #bc6ec5;">[</span>data<span style="color: #bc6ec5;">]</span> error<span style="color: #4f97d7;">]</span> <span style="color: #4f97d7;">(</span>&lt;! <span style="color: #bc6ec5;">(</span><span style="color: #ce537a; font-weight: bold;">sa</span>/get local-storage k<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span>
+        <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> error
+          <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">do</span> <span style="color: #bc6ec5;">(</span>error <span style="color: #2d9574;">"fetch"</span> k <span style="color: #2d9574;">"info error:"</span> error<span style="color: #bc6ec5;">)</span>
+              <span style="color: #a45bad;">nil</span><span style="color: #4f97d7;">)</span>
+          <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;</span> <span style="color: #bc6ec5;">(</span>js-&gt;clj data <span style="color: #a45bad;">:keywordize-keys</span> <span style="color: #a45bad;">true</span><span style="color: #bc6ec5;">)</span>
+              <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">doto</span> #<span style="color: #2d9574;">(</span>log <span style="color: #2d9574;">"DB: get storage key"</span> <span style="color: #7590db;">%1</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span>
+              <span style="color: #bc6ec5;">(</span>get <span style="color: #2d9574;">(</span>keyword k<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">get-all-monitors</span>
+  <span style="color: #2aa1ae;">"&#33719;&#21462;&#25152;&#26377;&#30417;&#25511;&#39033;&#20449;&#24687;"</span>
+  <span style="color: #bc6ec5;">[]</span>
+  <span style="color: #bc6ec5;">(</span>get-storage-key <span style="color: #2d9574;">"monitors"</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">get-new-count</span>
+  <span style="color: #2aa1ae;">"&#33719;&#21462;&#26356;&#26032;&#35745;&#25968;"</span>
+  <span style="color: #bc6ec5;">[]</span>
+  <span style="color: #bc6ec5;">(</span>get-storage-key <span style="color: #2d9574;">"new-count"</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">get-monitor-info</span>
+  <span style="color: #2aa1ae;">"&#33719;&#21462;&#30417;&#25511;&#39033;&#20449;&#24687;"</span>
+  <span style="color: #bc6ec5;">[</span>title<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span>go
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;</span> <span style="color: #67b11d;">(</span>&lt;! <span style="color: #b1951d;">(</span>get-all-monitors<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span>
+        title<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">set-new-count!</span>
+  <span style="color: #2aa1ae;">"&#35774;&#32622;&#26356;&#26032;&#32479;&#35745;&#35745;&#25968;"</span>
+  <span style="color: #bc6ec5;">[</span>n<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #ce537a; font-weight: bold;">sa</span>/set <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">storage</span>/get-local<span style="color: #2d9574;">)</span> #js <span style="color: #2d9574;">{</span><span style="color: #a45bad;">:new-count</span> n<span style="color: #2d9574;">}</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">update-monitors!</span>
+  <span style="color: #bc6ec5;">[</span>update-fn<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span>go
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #67b11d;">[</span>new-monitors <span style="color: #b1951d;">(</span>update-fn <span style="color: #4f97d7;">(</span>&lt;! <span style="color: #bc6ec5;">(</span>get-all-monitors<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">]</span>
+      <span style="color: #67b11d;">(</span>log <span style="color: #2d9574;">"DB: update monitors!"</span> new-monitors<span style="color: #67b11d;">)</span>
+      <span style="color: #67b11d;">(</span><span style="color: #ce537a; font-weight: bold;">sa</span>/set <span style="color: #b1951d;">(</span><span style="color: #ce537a; font-weight: bold;">storage</span>/get-local<span style="color: #b1951d;">)</span> <span style="color: #b1951d;">(</span>clj-&gt;js <span style="color: #4f97d7;">{</span><span style="color: #a45bad;">:monitors</span> new-monitors<span style="color: #4f97d7;">}</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">save-monitor-info!</span>
+  <span style="color: #2aa1ae;">"&#20445;&#23384;&#30417;&#25511;&#39033;"</span>
+  <span style="color: #bc6ec5;">[</span>title url data new<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span>update-monitors! #<span style="color: #2d9574;">(</span>merge <span style="color: #7590db;">%</span> <span style="color: #67b11d;">{</span>title <span style="color: #b1951d;">{</span><span style="color: #a45bad;">:url</span> url
+                                     <span style="color: #a45bad;">:new</span> new
+                                     <span style="color: #a45bad;">:data</span> data<span style="color: #b1951d;">}</span><span style="color: #67b11d;">}</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">remove-monitor!</span>
+  <span style="color: #2aa1ae;">"&#21024;&#38500;&#19968;&#20010;&#30417;&#25511;&#39033;"</span>
+  <span style="color: #bc6ec5;">[</span>title<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span>update-monitors! #<span style="color: #2d9574;">(</span>dissoc <span style="color: #7590db;">%</span> title<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">set-monitor-new-state!</span>
+  <span style="color: #2aa1ae;">"&#35774;&#32622;&#30417;&#25511;&#39033;&#30340;&#26356;&#26032;&#29366;&#24577;"</span>
+  <span style="color: #bc6ec5;">[</span>title new<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span>update-monitors! #<span style="color: #2d9574;">(</span>assoc-in <span style="color: #7590db;">%</span> <span style="color: #67b11d;">[</span>title <span style="color: #a45bad;">:new</span><span style="color: #67b11d;">]</span> new<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org914f9a0" class="outline-2">
+<h2 id="org914f9a0"><span class="section-number-2">4</span> 后台监控更新</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+定时访问剧集url的下载数据，并检查是否有更新，并保存新的剧集。
+</p>
+
+<div class="org-src-container">
+<label class="org-src-name"><span class="listing-number">&#20195;&#30721;5&nbsp; </span>src/background/movmon/background/core.cljs 检查数据更新的代码</label><pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">check-update-data!</span>
+  <span style="color: #bc6ec5;">[</span>name info body<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>html-body <span style="color: #67b11d;">(</span>parse-html body<span style="color: #67b11d;">)</span>
+        dl-spans <span style="color: #67b11d;">(</span>sel html-body <span style="color: #2d9574;">"span.dlname.nm"</span><span style="color: #67b11d;">)</span> <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">&#33719;&#21462;&#19979;&#36733;&#26694;dom&#20803;&#32032;</span>
+        last-data <span style="color: #67b11d;">(</span>first <span style="color: #b1951d;">(</span><span style="color: #a45bad;">:data</span> info<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span>
+        datas <span style="color: #67b11d;">(</span>map parse-dlink dl-spans<span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #67b11d;">(</span>= <span style="color: #b1951d;">(</span><span style="color: #a45bad;">:name</span> <span style="color: #4f97d7;">(</span>first datas<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span>
+           <span style="color: #b1951d;">(</span><span style="color: #a45bad;">:name</span> last-data<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span>
+      <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">&#22914;&#26524;&#21517;&#23383;&#19982;&#24050;&#26356;&#26032;&#30340;&#26368;&#21518;&#19968;&#38598;&#21517;&#23383;&#30456;&#21516;&#65292;&#21017;&#27809;&#26377;&#26356;&#26032;</span>
+      <span style="color: #67b11d;">(</span>log <span style="color: #2d9574;">"check update:"</span> name <span style="color: #2d9574;">"no new data!"</span><span style="color: #67b11d;">)</span>
+
+      <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">&#21542;&#21017;&#20445;&#23384;&#26032;&#26356;&#26032;&#30340;&#25968;&#25454;&#65292;</span>
+      <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #b1951d;">[</span>update-datas <span style="color: #4f97d7;">(</span>take-while #<span style="color: #bc6ec5;">(</span>not= last-data <span style="color: #7590db;">%</span><span style="color: #bc6ec5;">)</span> datas<span style="color: #4f97d7;">)</span>
+            new-datas <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #bc6ec5;">(</span><span style="color: #a45bad;">:new</span> info<span style="color: #bc6ec5;">)</span>
+                        <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">&#20043;&#21069;&#30340;&#25968;&#25454;&#20063;&#26159;&#26356;&#26032;&#25968;&#25454;(&#27809;&#26377;&#26631;&#35760;&#20026;&#26410;&#26356;&#26032;),&#21017;&#21512;&#24182;&#25968;&#25454;</span>
+                        <span style="color: #bc6ec5;">(</span>concat update-datas <span style="color: #2d9574;">(</span><span style="color: #a45bad;">:data</span> info<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span>
+                        update-datas<span style="color: #4f97d7;">)</span>
+            update-count <span style="color: #4f97d7;">(</span>count update-datas<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span>
+        <span style="color: #b1951d;">(</span>log name <span style="color: #2d9574;">"check update new datas save:"</span> new-datas <span style="color: #2d9574;">"</span><span style="color: #2d9574; font-weight: bold;">\n</span><span style="color: #2d9574;">"</span><span style="color: #b1951d;">)</span>
+        <span style="color: #b1951d;">(</span>go
+          <span style="color: #4f97d7;">(</span>noti-box <span style="color: #2d9574;">"&#21095;&#38598;&#26356;&#26032;&#65281;"</span> <span style="color: #bc6ec5;">(</span>str name <span style="color: #2d9574;">"&#26356;&#26032;"</span> update-count <span style="color: #2d9574;">"&#38598;&#65281;"</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+          <span style="color: #4f97d7;">(</span>&lt;! <span style="color: #bc6ec5;">(</span><span style="color: #ce537a; font-weight: bold;">db</span>/save-monitor-info! name <span style="color: #2d9574;">(</span><span style="color: #a45bad;">:url</span> info<span style="color: #2d9574;">)</span> new-datas <span style="color: #a45bad;">true</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+          <span style="color: #4f97d7;">(</span>mark-monitor-new-state! name <span style="color: #a45bad;">true</span> update-count<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span>
+        <span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+
+<div class="org-src-container">
+<label class="org-src-name"><span class="listing-number">&#20195;&#30721;6&nbsp; </span>src/background/movmon/background/core.cljs 使用异步回调方式,访问剧集网址检查更新</label><pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">proc-monitor</span>
+  <span style="color: #bc6ec5;">[</span><span style="color: #2d9574;">[</span>name info<span style="color: #2d9574;">]</span><span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>url <span style="color: #67b11d;">(</span><span style="color: #a45bad;">:url</span> info<span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span>log <span style="color: #2d9574;">"proc monitor :"</span> name <span style="color: #2d9574;">"url:"</span> url<span style="color: #2d9574;">)</span>
+    <span style="color: #2d9574;">(</span>GET url
+        <span style="color: #67b11d;">{</span><span style="color: #a45bad;">:handler</span> <span style="color: #b1951d;">(</span>partial check-update-data! name info<span style="color: #b1951d;">)</span>
+         <span style="color: #a45bad;">:error-handler</span> error-handler<span style="color: #67b11d;">}</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+
+
+<div class="org-src-container">
+<label class="org-src-name"><span class="listing-number">&#20195;&#30721;7&nbsp; </span>src/background/movmon/background/core.cljs background初始化代码，定时监控，更新badge,启动事件循环处理</label><pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">init!</span> <span style="color: #bc6ec5;">[]</span>
+  <span style="color: #bc6ec5;">(</span>log <span style="color: #2d9574;">"BACKGROUND: start "</span><span style="color: #bc6ec5;">)</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #ce537a; font-weight: bold;">js</span>/setInterval proc-monitors <span style="color: #2d9574;">(</span>* <span style="color: #a45bad;">5</span> <span style="color: #a45bad;">60</span> <span style="color: #a45bad;">1000</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span> <span style="color: #2aa1ae; background-color: #292e34;">; &#27599;5&#20998;&#38047;&#25191;&#34892;1&#27425;&#30417;&#25511;&#26356;&#26032;</span>
+  <span style="color: #bc6ec5;">(</span>proc-monitors<span style="color: #bc6ec5;">)</span>
+  <span style="color: #bc6ec5;">(</span>update-badge!<span style="color: #bc6ec5;">)</span>
+  <span style="color: #bc6ec5;">(</span>boot-chrome-event-loop!<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+
+
+<p>
+background完整处理<a href="https://github.com/ntestoc3/movmon/blob/master/src/background/movmon/background/core.cljs">代码</a>。
+</p>
+</div>
+</div>
+
+<div id="outline-container-org93e4723" class="outline-2">
+<h2 id="org93e4723"><span class="section-number-2">5</span> popup页面处理</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+主要是popup页面的显示和background的通信处理。
+</p>
+
+<div class="org-src-container">
+<label class="org-src-name"><span class="listing-number">&#20195;&#30721;8&nbsp; </span>src/popup/movmon/popup/core.cljs 发送消息给background</label><pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">add-monitor!</span>
+  <span style="color: #2aa1ae;">"&#28155;&#21152;&#30417;&#25511;&#20449;&#24687;"</span>
+  <span style="color: #bc6ec5;">[</span>url<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span>log <span style="color: #2d9574;">"add monitor"</span> url<span style="color: #bc6ec5;">)</span>
+  <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">&#30452;&#25509;&#21457;&#36865;&#28040;&#24687;&#32473;background&#22788;&#29702;</span>
+  <span style="color: #bc6ec5;">(</span>post-message! @server #js <span style="color: #2d9574;">{</span><span style="color: #a45bad;">:type</span> <span style="color: #2d9574;">"add-monitor"</span>
+                              <span style="color: #a45bad;">:url</span> url<span style="color: #2d9574;">}</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+<p>
+注意发送的消息使用js格式，不能使用edn。
+</p>
+
+<p>
+页面显示使用reagent实现，参考<a href="https://reagent-project.github.io/">示例</a>。
+</p>
+<div class="org-src-container">
+<label class="org-src-name"><span class="listing-number">&#20195;&#30721;9&nbsp; </span>src/popup/movmon/popup/core.cljs 监控面板显示</label><pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">curr-monitors-pane</span>
+  <span style="color: #bc6ec5;">[]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>monitors-data @monitors<span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span>log <span style="color: #2d9574;">"curr monitors:"</span> monitors-data <span style="color: #2d9574;">"type:"</span> <span style="color: #67b11d;">(</span>type monitors-data<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #67b11d;">(</span>empty? monitors-data<span style="color: #67b11d;">)</span>
+      <span style="color: #67b11d;">[</span><span style="color: #a45bad;">:div</span>
+       <span style="color: #b1951d;">[</span><span style="color: #a45bad;">:a</span> <span style="color: #4f97d7;">{</span><span style="color: #a45bad;">:href</span> ju-url
+            <span style="color: #a45bad;">:target</span> <span style="color: #2d9574;">"_blank"</span><span style="color: #4f97d7;">}</span> <span style="color: #2d9574;">"&#24555;&#21435;&#36861;&#21095;"</span><span style="color: #b1951d;">]</span><span style="color: #67b11d;">]</span>
+      <span style="color: #67b11d;">[</span><span style="color: #a45bad;">:div</span> <span style="color: #b1951d;">[</span><span style="color: #a45bad;">:ul</span> <span style="color: #4f97d7;">(</span>map <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #2d9574;">[</span><span style="color: #9cb6ad;">[</span>title <span style="color: #4f97d7;">{</span><span style="color: #a45bad;">:keys</span> <span style="color: #bc6ec5;">[</span>data new url<span style="color: #bc6ec5;">]</span><span style="color: #4f97d7;">}</span><span style="color: #9cb6ad;">]</span><span style="color: #2d9574;">]</span>
+                        ^<span style="color: #2d9574;">{</span><span style="color: #a45bad;">:key</span> title<span style="color: #2d9574;">}</span>
+                        <span style="color: #2d9574;">[</span><span style="color: #a45bad;">:li.mov</span>
+                         <span style="color: #9cb6ad;">{</span><span style="color: #a45bad;">:class</span> <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> new <span style="color: #2d9574;">"mov-new"</span><span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">}</span>
+                         <span style="color: #9cb6ad;">[</span><span style="color: #a45bad;">:div.mov-info</span>
+                          <span style="color: #4f97d7;">[</span><span style="color: #a45bad;">:div.mov-title</span> <span style="color: #bc6ec5;">(</span>name title<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">]</span>
+                          <span style="color: #4f97d7;">[</span><span style="color: #a45bad;">:div.mov-op</span>
+                           <span style="color: #bc6ec5;">[</span><span style="color: #a45bad;">:a</span> <span style="color: #2d9574;">{</span><span style="color: #a45bad;">:href</span> url
+                                <span style="color: #a45bad;">:target</span> <span style="color: #2d9574;">"_blank"</span><span style="color: #2d9574;">}</span> <span style="color: #2d9574;">"&#20027;&#39029;"</span><span style="color: #bc6ec5;">]</span>
+                           <span style="color: #bc6ec5;">[</span><span style="color: #a45bad;">:input.del</span>
+                            <span style="color: #2d9574;">{</span><span style="color: #a45bad;">:type</span> <span style="color: #2d9574;">"button"</span>
+                             <span style="color: #a45bad;">:value</span> <span style="color: #2d9574;">"&#21024;&#38500;&#30417;&#25511;"</span>
+                             <span style="color: #a45bad;">:on-click</span> <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>_<span style="color: #b1951d;">]</span>
+                                         <span style="color: #b1951d;">(</span>del-monitor! title<span style="color: #b1951d;">)</span>
+                                         <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> new
+                                           <span style="color: #4f97d7;">(</span>mark-monitor-old! title <span style="color: #bc6ec5;">(</span>count data<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">}</span><span style="color: #bc6ec5;">]</span>
+                           <span style="color: #bc6ec5;">[</span><span style="color: #a45bad;">:input.copy</span>
+                            <span style="color: #2d9574;">{</span><span style="color: #a45bad;">:type</span> <span style="color: #2d9574;">"button"</span>
+                             <span style="color: #a45bad;">:value</span> <span style="color: #2d9574;">"&#22797;&#21046;&#38142;&#25509;"</span>
+                             <span style="color: #a45bad;">:on-click</span> <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>_<span style="color: #b1951d;">]</span>
+                                         <span style="color: #b1951d;">(</span>copy-urls data<span style="color: #b1951d;">)</span>
+                                         <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> new
+                                           <span style="color: #4f97d7;">(</span>mark-monitor-old! title <span style="color: #bc6ec5;">(</span>count data<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">}</span><span style="color: #bc6ec5;">]</span><span style="color: #4f97d7;">]</span><span style="color: #9cb6ad;">]</span>
+                         <span style="color: #9cb6ad;">[</span>monitor-video data<span style="color: #9cb6ad;">]</span><span style="color: #2d9574;">]</span><span style="color: #bc6ec5;">)</span>
+                      monitors-data<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span><span style="color: #67b11d;">]</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+
+<p>
+popup页面的<a href="https://github.com/ntestoc3/movmon/blob/master/src/popup/movmon/popup/core.cljs">完整代码</a>。
+</p>
+</div>
+</div>
+
+<div id="outline-container-org34c7997" class="outline-2">
+<h2 id="org34c7997"><span class="section-number-2">6</span> 开发与发布过程</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+开发过程使用emacs+cider插件，选择figwheel-main启动即可，不过chrome扩展包含多个编译项目，需要同时启动多个编译项,如下所示，popup启动为后台构建，background为前台构建，即当前启动的ClojureScript REPL环境为background：
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #a45bad;">:</span><span style="color: #ce537a; font-weight: bold;">cljs</span><span style="color: #b2b2b2; background-color: #292b2e;">/</span><span style="color: #a45bad;">quit</span>
+<span style="color: #4f97d7;">(</span>require '<span style="color: #bc6ec5;">[</span>figwheel.main.api <span style="color: #a45bad;">:as</span> fig<span style="color: #bc6ec5;">]</span><span style="color: #4f97d7;">)</span>
+<span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">fig</span>/stop-all<span style="color: #4f97d7;">)</span>
+<span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">fig</span>/start  <span style="color: #a45bad;">:background</span> <span style="color: #a45bad;">:popup</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+
+<p>
+启动后会按照项目配置自动编译到resources/unpacked/文件夹，在chrome的扩展程序设置中启用开发者模式，加载已解压的扩展程序，指向resources/unpacked/文件夹即可。
+</p>
+
+<p>
+如果是release发布，在项目根目录执行lein release,编译优化后的js文件到resources/release/文件夹下即可。可以使用chrome浏览器加载、打包,或发布到chrome web store。
+</p>
+</div>
+</div>
+
+<div id="outline-container-org74f1385" class="outline-2">
+<h2 id="org74f1385"><span class="section-number-2">7</span> 总结</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+学习了chrome扩展开发的方法。ClojureScript和JavaScript之间的互操作。figwheel-main构建管理的方法。
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">&#20316;&#32773;: ntestoc</p>
+<p class="date">Created: 2020-01-30 四 13:14</p>
+</div>
+</body>
+</html>

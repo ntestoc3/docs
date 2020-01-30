@@ -1,0 +1,6 @@
+#+TITLE: ClojureScript实现xpath生成-1
+#+DESCRIPTION: 
+#+KEYWORDS: programming, xpath locaator, ClojureScript
+#+CATEGORIES: 编程,web
+#+LANGUAGE: zh-CN
+
