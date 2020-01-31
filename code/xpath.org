@@ -1,6 +1,32 @@
-#+TITLE: ClojureScript实现xpath生成-1
-#+DESCRIPTION: 
-#+KEYWORDS: programming, xpath locaator, ClojureScript
+#+TITLE: ClojureScript实现xpath定位器生成-1
+#+DESCRIPTION: ClojureScript实现robula+算法实现xpath定位器生成
+#+KEYWORDS: programming, xpath locator, ClojureScript
 #+CATEGORIES: 编程,web
 #+LANGUAGE: zh-CN
 
+* 简介
+  从dom元素生成唯一的xpath定位器，有多种方法，最简单的就是从/html开始的全路径，如果生成比较健壮的xpath路径，则不容易实现，特别是动态网页，元素位置会发生动态变化的情况，自动生成的xpath定位器健壮性比较差。根据[[https://www.researchgate.net/publication/299336358_Robula_An_algorithm_for_generating_robust_XPath_locators_for_web_testing][Robula+: An algorithm for generating robust XPath locators for web testing]]文章介绍的算法，参考[[https://github.com/cyluxx/robula-plus/blob/master/src/index.ts][robula-plus]]的实现，使用ClojureScript实现robula+算法，并进行相关优化。
+
+  算法的思想是比较简单的，从//*匹配任意元素开始，通过替换元素名，添加id,添加text,添加各种属性，添加多个属性集合，添加元素位置索引，添加父级定位的方式来查找唯一匹配元素的xpath定位器。通过不断递归父级进行查找就能找到最短的xpath定位器。
+
+  
+* 算法实现
+  content-script里面处理鼠标移动事件，标记当前指向的元素并获取元素的xpath定位器：
+#+include: "/home/ntestu/chromex/examples/xpath_finder/src/content_script/xpath_finder/content_script/core.cljs" src clojure :lines "43-68"
+
+  robula算法代码:
+#+include: "/home/ntestu/chromex/examples/xpath_finder/src/content_script/xpath_finder/robula.cljs" src clojure
+
+  整个[[https://github.com/ntestoc3/xpath_finder][项目地址]]。
+* 运行测试
+  当xpath路径比较深的时候，查找速度就很慢，因为要不断执行evaluate进行xpath测试。
+#+CAPTION: chrome性能分析结果,黄色为GC执行时间,褐色为evaluate执行时间
+[[./perf-xpath-1.png]]
+
+#+CAPTION: find\under{}xpath执行耗时(局部放大)
+[[./perf-eval-xpath.png]]
+
+* 总结
+  因为robula+算法依靠不断地进行xpath测试来找到最短的xpath定位器，所以性能受到唯一定位的层级深度影响。当超过5层的时候，就需要几秒钟才能找到xpath定位器，性能不是很理想。
+
+  通过减少执行xpath测试的次数,或者使用css定位器进行查找，速度应该会更快一点，留到下一节实现。
