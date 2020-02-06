@@ -1,0 +1,733 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
+<head>
+<!-- 2020-01-31 五 15:39 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ClojureScript实现xpath定位器生成-1</title>
+<meta name="generator" content="Org mode" />
+<meta name="author" content="ntestoc" />
+<meta name="keywords" content="programming, xpath locaator, ClojureScript" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { width: 90%; }
+  /*]]>*/-->
+</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2020 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">ClojureScript实现xpath定位器生成-1</h1>
+<div id="table-of-contents">
+<h2>&#30446;&#24405;</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#org4711cb5">1. 简介</a></li>
+<li><a href="#orgb7b11bb">2. 算法实现</a></li>
+<li><a href="#orgbadbf4b">3. 运行测试</a></li>
+<li><a href="#orgbb74207">4. 总结</a></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org4711cb5" class="outline-2">
+<h2 id="org4711cb5"><span class="section-number-2">1</span> 简介</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+从dom元素生成唯一的xpath定位器，有多种方法，最简单的就是从/html开始的全路径，如果生成比较健壮的xpath路径，则不容易实现，特别是动态网页，元素位置会发生动态变化的情况，自动生成的xpath定位器健壮性比较差。根据<a href="https://www.researchgate.net/publication/299336358_Robula_An_algorithm_for_generating_robust_XPath_locators_for_web_testing">Robula+: An algorithm for generating robust XPath locators for web testing</a>文章介绍的算法，参考<a href="https://github.com/cyluxx/robula-plus/blob/master/src/index.ts">robula-plus</a>的实现，使用ClojureScript实现robula+算法，并进行相关优化。
+</p>
+
+<p>
+算法的思想是比较简单的，从//*匹配任意元素开始，通过替换元素名，添加id,添加text,添加各种属性，添加多个属性集合，添加元素位置索引，添加父级定位的方式来查找唯一匹配元素的xpath定位器。通过不断递归父级进行查找就能找到最短的xpath定位器。
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-orgb7b11bb" class="outline-2">
+<h2 id="orgb7b11bb"><span class="section-number-2">2</span> 算法实现</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+content-script里面处理鼠标移动事件，标记当前指向的元素并获取元素的xpath定位器：
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">last-ele</span> <span style="color: #2aa1ae;">"&#26368;&#21518;&#25351;&#21521;&#30340;&#20803;&#32032;"</span> <span style="color: #bc6ec5;">(</span>atom <span style="color: #a45bad;">nil</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">remove-mark</span>
+  <span style="color: #bc6ec5;">[</span>ele<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> ele
+    <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">dommy</span>/remove-style! ele <span style="color: #a45bad;">:box-shadow</span><span style="color: #2d9574;">)</span>
+    <span style="color: #2d9574;">(</span>reset! last-ele <span style="color: #a45bad;">nil</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">mark-element</span>
+  <span style="color: #bc6ec5;">[</span>ele<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> ele
+    <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">dommy</span>/set-style! ele <span style="color: #a45bad;">:box-shadow</span> <span style="color: #2d9574;">"0px 0px 2px 2px blue"</span><span style="color: #2d9574;">)</span>
+    <span style="color: #2d9574;">(</span>reset! last-ele ele<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">handle-mouse-move</span>
+  <span style="color: #bc6ec5;">[</span>e<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>x <span style="color: #67b11d;">(</span>.-clientX e<span style="color: #67b11d;">)</span>
+        y <span style="color: #67b11d;">(</span>.-clientY e<span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">if-let</span> <span style="color: #67b11d;">[</span>ele <span style="color: #b1951d;">(</span><span style="color: #ce537a; font-weight: bold;">js</span>/document.elementFromPoint  x y<span style="color: #b1951d;">)</span><span style="color: #67b11d;">]</span>
+      <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #b1951d;">[</span>prev-ele @last-ele<span style="color: #b1951d;">]</span>
+        <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">when-not</span> <span style="color: #4f97d7;">(</span>= ele prev-ele<span style="color: #4f97d7;">)</span>
+          <span style="color: #4f97d7;">(</span>remove-mark prev-ele<span style="color: #4f97d7;">)</span>
+          <span style="color: #4f97d7;">(</span>mark-element ele<span style="color: #4f97d7;">)</span>
+          <span style="color: #4f97d7;">(</span>log <span style="color: #2d9574;">"x:"</span> x <span style="color: #2d9574;">" y:"</span> y <span style="color: #2d9574;">"elements xpath:"</span> <span style="color: #bc6ec5;">(</span>get-robust-xpath <span style="color: #ce537a; font-weight: bold;">js</span>/document ele<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span>
+      <span style="color: #67b11d;">(</span>remove-mark @last-ele<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+
+<p>
+robula算法代码:
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">ns</span> <span style="color: #ce537a; font-weight: bold;">xpath-finder.robula</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #a45bad;">:require</span> <span style="color: #2d9574;">[</span>oops.core <span style="color: #a45bad;">:refer</span> <span style="color: #67b11d;">[</span>oget oset! ocall oapply ocall! oapply!
+                               oget+ oset!+ ocall+ oapply+ ocall!+ oapply!+<span style="color: #67b11d;">]</span><span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">[</span>clojure.string <span style="color: #a45bad;">:as</span> string<span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">[</span>goog.string <span style="color: #a45bad;">:as</span> gstring<span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">[</span>goog.string.format<span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">[</span>clojure.set <span style="color: #a45bad;">:refer</span> <span style="color: #67b11d;">[</span>difference<span style="color: #67b11d;">]</span><span style="color: #2d9574;">]</span>
+            <span style="color: #2d9574;">[</span>dommy.core <span style="color: #a45bad;">:as</span> dommy <span style="color: #a45bad;">:refer-macros</span> <span style="color: #67b11d;">[</span>sel sel1<span style="color: #67b11d;">]</span><span style="color: #2d9574;">]</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #2aa1ae; background-color: #292e34;">;;;;;;;;;;;;; </span><span style="color: #2aa1ae; background-color: #292e34;">xpath &#36741;&#21161;&#20989;&#25968;</span>
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">xpath-length</span> count<span style="color: #4f97d7;">)</span>
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">xpath-head</span> first<span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">xpath-head-has-predicates?</span>
+  <span style="color: #bc6ec5;">[</span>xpath<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;</span> <span style="color: #2d9574;">(</span>xpath-head xpath<span style="color: #2d9574;">)</span>
+      <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">string</span>/includes? <span style="color: #2d9574;">"["</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">xpath-head-has-position?</span>
+  <span style="color: #bc6ec5;">[</span>xpath<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>head <span style="color: #67b11d;">(</span>xpath-head xpath<span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">or</span> <span style="color: #67b11d;">(</span><span style="color: #ce537a; font-weight: bold;">string</span>/includes? head <span style="color: #2d9574;">"position()"</span><span style="color: #67b11d;">)</span>
+        <span style="color: #67b11d;">(</span><span style="color: #ce537a; font-weight: bold;">string</span>/includes? head <span style="color: #2d9574;">"last"</span><span style="color: #67b11d;">)</span>
+        <span style="color: #67b11d;">(</span>re-find #<span style="color: #2d9574;">"</span><span style="color: #2d9574; font-weight: bold;">\[</span><span style="color: #2d9574;">[0-9]+</span><span style="color: #2d9574; font-weight: bold;">\]</span><span style="color: #2d9574;">"</span> head<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">xpath-head-has-text?</span>
+  <span style="color: #bc6ec5;">[</span>xpath<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;</span> <span style="color: #2d9574;">(</span>xpath-head xpath<span style="color: #2d9574;">)</span>
+      <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">string</span>/includes? <span style="color: #2d9574;">"text()"</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">xpath-head-with-all?</span>
+  <span style="color: #bc6ec5;">[</span>xpath<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;</span> <span style="color: #2d9574;">(</span>xpath-head xpath<span style="color: #2d9574;">)</span>
+      <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">string</span>/starts-with? <span style="color: #2d9574;">"*"</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">xpath-add-predicate-to-head</span>
+  <span style="color: #bc6ec5;">[</span>xpath predicate<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>new-head <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;</span> <span style="color: #b1951d;">(</span>first xpath<span style="color: #b1951d;">)</span>
+                     <span style="color: #b1951d;">(</span>str predicate<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span>assoc <span style="color: #67b11d;">(</span>into <span style="color: #b1951d;">[]</span> xpath<span style="color: #67b11d;">)</span> <span style="color: #a45bad;">0</span> new-head<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">xpath-replace-head-all</span>
+  <span style="color: #bc6ec5;">[</span>xpath head-tag<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>new-head <span style="color: #67b11d;">(</span>str head-tag
+                      <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;</span> <span style="color: #4f97d7;">(</span>first xpath<span style="color: #4f97d7;">)</span>
+                          <span style="color: #4f97d7;">(</span>subs <span style="color: #a45bad;">1</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span>assoc <span style="color: #67b11d;">(</span>into <span style="color: #b1951d;">[]</span> xpath<span style="color: #67b11d;">)</span> <span style="color: #a45bad;">0</span> new-head<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">xpath-add-head-all</span>
+  <span style="color: #bc6ec5;">[</span>xpath<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span>cons <span style="color: #2d9574;">"*"</span> xpath<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">xpath-empty</span> <span style="color: #bc6ec5;">[]</span><span style="color: #4f97d7;">)</span>
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">xpath-all</span> <span style="color: #bc6ec5;">[</span><span style="color: #2d9574;">"*"</span><span style="color: #bc6ec5;">]</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">xpath-&gt;str</span>
+  <span style="color: #bc6ec5;">[</span>xpath<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">string</span>/join <span style="color: #2d9574;">"/"</span> xpath<span style="color: #2d9574;">)</span>
+       <span style="color: #2d9574;">(</span>str <span style="color: #2d9574;">"//"</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span>comment
+  <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">&#20351;&#29992;&#24207;&#21015;&#34920;&#31034;xpath,&#27599;&#19968;&#20010;&#20803;&#32032;&#34920;&#31034;xpath&#30340;&#19968;&#20010;&#23618;&#32423;(level),&#36991;&#20813;&#20351;&#29992;&#19968;&#20010;&#23383;&#31526;&#20018;&#34920;&#31034;&#25972;&#20010;xpath</span>
+  <span style="color: #2aa1ae; background-color: #292e34;">;;  </span><span style="color: #2aa1ae; background-color: #292e34;">&#20250;&#22240;&#20026;&#23383;&#31526;&#20018;&#20013;&#20986;&#29616;/&#23383;&#31526;&#23548;&#33268;&#36335;&#24452;&#38169;&#35823;&#12290;</span>
+  <span style="color: #bc6ec5;">(</span>xpath-add-predicate-to-head <span style="color: #2d9574;">[</span><span style="color: #2d9574;">"div"</span> <span style="color: #2d9574;">"span"</span> <span style="color: #2d9574;">"a"</span><span style="color: #2d9574;">]</span> <span style="color: #2d9574;">"[text() = 'aa']"</span><span style="color: #bc6ec5;">)</span>
+
+  <span style="color: #bc6ec5;">(</span>xpath-head-has-text? <span style="color: #4f97d7;">*1</span><span style="color: #bc6ec5;">)</span>
+
+  <span style="color: #bc6ec5;">(</span>xpath-add-head-all empty-xpath<span style="color: #bc6ec5;">)</span>
+
+  <span style="color: #4f97d7;">)</span>
+
+<span style="color: #2aa1ae; background-color: #292e34;">;;;;;;;;;;;;; </span><span style="color: #2aa1ae; background-color: #292e34;">dom helper</span>
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">get-previous-element-siblings</span>
+  <span style="color: #2aa1ae;">"&#33719;&#21462;&#25152;&#26377;&#20043;&#21069;&#30340;&#20804;&#24351;&#20803;&#32032;"</span>
+  <span style="color: #bc6ec5;">[</span>element<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #2d9574;">(</span>iterate #<span style="color: #67b11d;">(</span>oget <span style="color: #7590db;">%</span> <span style="color: #2d9574;">"previousElementSibling"</span><span style="color: #67b11d;">)</span> element<span style="color: #2d9574;">)</span>
+       <span style="color: #2d9574;">(</span>take-while identity<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">get-all-ancestor</span>
+  <span style="color: #2aa1ae;">"&#33719;&#21462;&#25152;&#26377;&#29238;&#32423;&#20803;&#32032;&#65292;&#21253;&#25324;&#33258;&#36523;"</span>
+  <span style="color: #bc6ec5;">[</span>element<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #2d9574;">(</span>iterate #<span style="color: #67b11d;">(</span>oget <span style="color: #7590db;">%</span> <span style="color: #2d9574;">"parentElement"</span><span style="color: #67b11d;">)</span> element<span style="color: #2d9574;">)</span>
+       <span style="color: #2d9574;">(</span>take-while identity<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">get-ancestor-count</span>
+  <span style="color: #bc6ec5;">[</span>element<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;</span> <span style="color: #2d9574;">(</span>get-all-ancestor element<span style="color: #2d9574;">)</span>
+      count<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">get-ancestor-at</span>
+  <span style="color: #bc6ec5;">[</span>element index<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;</span> <span style="color: #2d9574;">(</span>get-all-ancestor element<span style="color: #2d9574;">)</span>
+      <span style="color: #2d9574;">(</span>nth index<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">get-attributes</span>
+  <span style="color: #2aa1ae;">"&#33719;&#21462;&#20803;&#32032;&#30340;&#25152;&#26377;&#23646;&#24615;"</span>
+  <span style="color: #bc6ec5;">[</span>element<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>get-attr-kv <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>attr<span style="color: #b1951d;">]</span>
+                      <span style="color: #b1951d;">[</span><span style="color: #4f97d7;">(</span>oget attr <span style="color: #2d9574;">"name"</span><span style="color: #4f97d7;">)</span> <span style="color: #4f97d7;">(</span>oget attr <span style="color: #2d9574;">"value"</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span><span style="color: #67b11d;">)</span>
+        attrs <span style="color: #67b11d;">(</span>oget element <span style="color: #2d9574;">"attributes"</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #67b11d;">(</span>range <span style="color: #b1951d;">(</span>oget attrs <span style="color: #2d9574;">"length"</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span>
+         <span style="color: #67b11d;">(</span>map #<span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;</span> <span style="color: #4f97d7;">(</span>oget+ attrs <span style="color: #bc6ec5;">(</span>str <span style="color: #7590db;">%</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+                   get-attr-kv<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span>
+         <span style="color: #67b11d;">(</span>into <span style="color: #b1951d;">{}</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">tag-name</span>
+  <span style="color: #bc6ec5;">[</span>element<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;</span> <span style="color: #2d9574;">(</span>oget element <span style="color: #2d9574;">"tagName"</span><span style="color: #2d9574;">)</span>
+      <span style="color: #ce537a; font-weight: bold;">string</span>/lower-case <span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #2aa1ae; background-color: #292e34;">;;;;;;;;;;;;; </span><span style="color: #2aa1ae; background-color: #292e34;">robula xpath locator</span>
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> ^<span style="color: #a45bad;">:dynamic</span> <span style="color: #7590db;">attribute-priorization-list</span> #<span style="color: #bc6ec5;">{</span><span style="color: #2d9574;">"name"</span> <span style="color: #2d9574;">"class"</span> <span style="color: #2d9574;">"title"</span> <span style="color: #2d9574;">"alt"</span> <span style="color: #2d9574;">"value"</span><span style="color: #bc6ec5;">}</span><span style="color: #4f97d7;">)</span>
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> ^<span style="color: #a45bad;">:dynamic</span> <span style="color: #7590db;">attribute-black-list</span> #<span style="color: #bc6ec5;">{</span><span style="color: #2d9574;">"href"</span>
+                                      <span style="color: #2d9574;">"src"</span>
+                                      <span style="color: #2d9574;">"onclick"</span>
+                                      <span style="color: #2d9574;">"onload"</span>
+                                      <span style="color: #2d9574;">"tabindex"</span>
+                                      <span style="color: #2d9574;">"width"</span>
+                                      <span style="color: #2d9574;">"height"</span>
+                                      <span style="color: #2d9574;">"style"</span>
+                                      <span style="color: #2d9574;">"size"</span>
+                                      <span style="color: #2d9574;">"maxlength"</span><span style="color: #bc6ec5;">}</span><span style="color: #4f97d7;">)</span>
+
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">get-xpath-head-ancestor</span>
+  <span style="color: #2aa1ae;">"&#33719;&#21462;xpath&#22836;&#37096;&#30340;&#31062;&#20808;&#20803;&#32032;"</span>
+  <span style="color: #bc6ec5;">[</span>xpath element<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #2d9574;">(</span>xpath-length xpath<span style="color: #2d9574;">)</span>
+       dec
+       <span style="color: #2d9574;">(</span>get-ancestor-at element<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">transf-convert-star</span>
+  <span style="color: #2aa1ae;">"&#36716;&#25442;xpath&#30340;*&#34920;&#31034;"</span>
+  <span style="color: #bc6ec5;">[</span>xpath element<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>ancestor <span style="color: #67b11d;">(</span>get-xpath-head-ancestor xpath element<span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #67b11d;">(</span>xpath-head-with-all? xpath<span style="color: #67b11d;">)</span>
+      <span style="color: #67b11d;">(</span>vector <span style="color: #b1951d;">(</span>xpath-replace-head-all
+               xpath
+               <span style="color: #4f97d7;">(</span>tag-name ancestor<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> ^<span style="color: #a45bad;">:dynamic</span> <span style="color: #7590db;">*max-text-length*</span> <span style="color: #a45bad;">30</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">xpath-trans</span>
+  <span style="color: #bc6ec5;">[</span>k v<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">string</span>/includes? v <span style="color: #2d9574;">"'"</span><span style="color: #2d9574;">)</span>
+    <span style="color: #2d9574;">[</span><span style="color: #67b11d;">(</span><span style="color: #ce537a; font-weight: bold;">gstring</span>/format <span style="color: #2d9574;">"translate(%s,</span><span style="color: #2d9574; font-weight: bold;">\"</span><span style="color: #2d9574;">'</span><span style="color: #2d9574; font-weight: bold;">\"</span><span style="color: #2d9574;">,</span><span style="color: #2d9574; font-weight: bold;">\"</span><span style="color: #2d9574;"> </span><span style="color: #2d9574; font-weight: bold;">\"</span><span style="color: #2d9574;">)"</span> k<span style="color: #67b11d;">)</span>
+     <span style="color: #67b11d;">(</span><span style="color: #ce537a; font-weight: bold;">string</span>/replace v <span style="color: #2d9574;">"'"</span> <span style="color: #2d9574;">" "</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">[</span>k v<span style="color: #2d9574;">]</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">xpath-contains-trans</span>
+  <span style="color: #bc6ec5;">[</span>k v<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #2d9574;">(</span>xpath-trans k v<span style="color: #2d9574;">)</span>
+       <span style="color: #2d9574;">(</span>apply <span style="color: #ce537a; font-weight: bold;">gstring</span>/format <span style="color: #2d9574;">"contains(%s,'%s')"</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">make-xpath-text-exp</span>
+  <span style="color: #2aa1ae;">"&#26500;&#36896;text&#34920;&#36798;&#24335;"</span>
+  <span style="color: #bc6ec5;">[</span>s<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>text-fn-name <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #b1951d;">(</span>&gt; <span style="color: #4f97d7;">(</span>count s<span style="color: #4f97d7;">)</span> <span style="color: #7590db;">*max-text-length*</span><span style="color: #b1951d;">)</span>
+                       <span style="color: #2aa1ae; background-color: #292e34;">;;</span><span style="color: #2aa1ae; background-color: #292e34;">&#27880;&#24847;xpath substring&#31532;&#19968;&#20010;&#20301;&#32622;&#20026;1&#65292;&#19981;&#26159;0</span>
+                       <span style="color: #b1951d;">(</span><span style="color: #ce537a; font-weight: bold;">gstring</span>/format <span style="color: #2d9574;">"substring(text(),1,%d)"</span> <span style="color: #7590db;">*max-text-length*</span><span style="color: #b1951d;">)</span>
+                       <span style="color: #2d9574;">"text()"</span><span style="color: #67b11d;">)</span>
+        target-s <span style="color: #67b11d;">(</span>subs s <span style="color: #a45bad;">0</span> <span style="color: #7590db;">*max-text-length*</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #67b11d;">(</span>xpath-contains-trans text-fn-name target-s<span style="color: #67b11d;">)</span>
+         <span style="color: #67b11d;">(</span><span style="color: #ce537a; font-weight: bold;">gstring</span>/format <span style="color: #2d9574;">"[%s]"</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">make-xpath-attr-predicate</span>
+  <span style="color: #bc6ec5;">[</span>attr-key value<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>k <span style="color: #67b11d;">(</span>str <span style="color: #2d9574;">"@"</span> attr-key<span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #67b11d;">(</span>&gt; <span style="color: #b1951d;">(</span>count value<span style="color: #b1951d;">)</span> <span style="color: #7590db;">*max-text-length*</span><span style="color: #67b11d;">)</span>
+      <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #b1951d;">(</span>subs value <span style="color: #a45bad;">0</span> <span style="color: #7590db;">*max-text-length*</span><span style="color: #b1951d;">)</span>
+           <span style="color: #b1951d;">(</span>xpath-contains-trans k<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span>
+      <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #b1951d;">(</span>xpath-trans k value<span style="color: #b1951d;">)</span>
+           <span style="color: #b1951d;">(</span>apply <span style="color: #ce537a; font-weight: bold;">gstring</span>/format <span style="color: #2d9574;">"%s='%s'"</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">make-xpath-attr-exp</span>
+  <span style="color: #bc6ec5;">[</span>attr-key value<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #2d9574;">(</span>make-xpath-attr-predicate attr-key value<span style="color: #2d9574;">)</span>
+       <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">gstring</span>/format <span style="color: #2d9574;">"[%s]"</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">transf-add-id</span>
+  <span style="color: #2aa1ae;">"&#28155;&#21152;id&#23646;&#24615;"</span>
+  <span style="color: #bc6ec5;">[</span>xpath element<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>ancestor <span style="color: #67b11d;">(</span>get-xpath-head-ancestor xpath element<span style="color: #67b11d;">)</span>
+        ancestor-id <span style="color: #67b11d;">(</span>oget ancestor <span style="color: #2d9574;">"id"</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">and</span> <span style="color: #b1951d;">(</span>seq ancestor-id<span style="color: #b1951d;">)</span>
+               <span style="color: #b1951d;">(</span>not <span style="color: #4f97d7;">(</span>xpath-head-has-predicates? xpath<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span>
+      <span style="color: #67b11d;">(</span>vector <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #4f97d7;">(</span>make-xpath-attr-exp <span style="color: #2d9574;">"id"</span> ancestor-id<span style="color: #4f97d7;">)</span>
+                   <span style="color: #4f97d7;">(</span>xpath-add-predicate-to-head xpath<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">transf-add-text</span>
+  <span style="color: #2aa1ae;">"&#28155;&#21152;text&#23646;&#24615;"</span>
+  <span style="color: #bc6ec5;">[</span>xpath element<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>ancestor <span style="color: #67b11d;">(</span>get-xpath-head-ancestor xpath element<span style="color: #67b11d;">)</span>
+        ancestor-text <span style="color: #67b11d;">(</span>oget ancestor <span style="color: #2d9574;">"textContent"</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">and</span> <span style="color: #b1951d;">(</span>seq ancestor-text<span style="color: #b1951d;">)</span>
+               <span style="color: #b1951d;">(</span>not <span style="color: #4f97d7;">(</span>xpath-head-has-position? xpath<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span>
+               <span style="color: #b1951d;">(</span>not <span style="color: #4f97d7;">(</span>xpath-head-has-text? xpath<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span>
+      <span style="color: #67b11d;">(</span>vector <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #4f97d7;">(</span>make-xpath-text-exp ancestor-text<span style="color: #4f97d7;">)</span>
+                   <span style="color: #4f97d7;">(</span>xpath-add-predicate-to-head xpath<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">transf-add-attribute</span>
+  <span style="color: #2aa1ae;">"&#28155;&#21152;&#20854;&#20182;&#23646;&#24615;"</span>
+  <span style="color: #bc6ec5;">[</span>xpath element<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>ancestor <span style="color: #67b11d;">(</span>get-xpath-head-ancestor xpath element<span style="color: #67b11d;">)</span>
+        ancestor-attrs <span style="color: #67b11d;">(</span>get-attributes ancestor<span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #67b11d;">(</span>not <span style="color: #b1951d;">(</span>xpath-head-has-predicates? xpath<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span>
+      <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #b1951d;">[</span>ancestor-priority-attrs <span style="color: #4f97d7;">(</span>select-keys ancestor-attrs attribute-priorization-list<span style="color: #4f97d7;">)</span>
+            ancestor-other-attrs <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #bc6ec5;">(</span>difference <span style="color: #2d9574;">(</span>set <span style="color: #9cb6ad;">(</span>keys ancestor-attrs<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
+                                                  attribute-priorization-list
+                                                  attribute-black-list<span style="color: #bc6ec5;">)</span>
+                                      <span style="color: #bc6ec5;">(</span>select-keys ancestor-attrs<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span>
+        <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #4f97d7;">(</span>concat ancestor-priority-attrs ancestor-other-attrs<span style="color: #4f97d7;">)</span>
+             <span style="color: #4f97d7;">(</span>map <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #2d9574;">[</span><span style="color: #9cb6ad;">[</span>k v<span style="color: #9cb6ad;">]</span><span style="color: #2d9574;">]</span>
+                    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #9cb6ad;">(</span>make-xpath-attr-exp k v<span style="color: #9cb6ad;">)</span>
+                         <span style="color: #9cb6ad;">(</span>xpath-add-predicate-to-head xpath<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">powerset</span> <span style="color: #bc6ec5;">[</span>coll<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span>reduce <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #67b11d;">[</span>a x<span style="color: #67b11d;">]</span>
+            <span style="color: #67b11d;">(</span>into a <span style="color: #b1951d;">(</span>map #<span style="color: #4f97d7;">(</span>conj <span style="color: #7590db;">%</span> x<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span> a<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
+          #<span style="color: #2d9574;">{</span>#<span style="color: #67b11d;">{}</span><span style="color: #2d9574;">}</span> coll<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">priorization-attr-compare</span>
+  <span style="color: #2aa1ae;">"&#20248;&#20808;&#23646;&#24615;&#27604;&#36739;"</span>
+  <span style="color: #bc6ec5;">[</span>priorization-set attr1 attr2<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">cond</span>
+    <span style="color: #2d9574;">(</span>priorization-set <span style="color: #67b11d;">(</span>first attr1<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span> <span style="color: #a45bad;">-1</span>
+    <span style="color: #2d9574;">(</span>priorization-set <span style="color: #67b11d;">(</span>first attr2<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span> <span style="color: #a45bad;">1</span>
+    <span style="color: #a45bad;">:else</span> <span style="color: #a45bad;">0</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">transf-add-attribute-set</span>
+  <span style="color: #2aa1ae;">"&#28155;&#21152;&#20854;&#20182;&#23646;&#24615;&#38598;&#21512;(&#24130;&#38598;)"</span>
+  <span style="color: #bc6ec5;">[</span>xpath element<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>ancestor-attrs <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;</span> <span style="color: #b1951d;">(</span>get-xpath-head-ancestor xpath element<span style="color: #b1951d;">)</span>
+                           get-attributes<span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #67b11d;">(</span>not <span style="color: #b1951d;">(</span>xpath-head-has-predicates? xpath<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span>
+      <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #b1951d;">[</span>ancestor-useful-attrs <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #bc6ec5;">(</span>difference <span style="color: #2d9574;">(</span>set <span style="color: #9cb6ad;">(</span>keys ancestor-attrs<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
+                                                   attribute-black-list<span style="color: #bc6ec5;">)</span>
+                                       <span style="color: #bc6ec5;">(</span>select-keys ancestor-attrs<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+            attr-power-set <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #bc6ec5;">(</span>powerset ancestor-useful-attrs<span style="color: #bc6ec5;">)</span>
+                                <span style="color: #bc6ec5;">(</span>filter #<span style="color: #2d9574;">(</span>&gt; <span style="color: #9cb6ad;">(</span>count <span style="color: #7590db;">%</span><span style="color: #9cb6ad;">)</span> <span style="color: #a45bad;">1</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+            priorization-set-val-cmp <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #bc6ec5;">(</span>conj attribute-priorization-list <span style="color: #2d9574;">"id"</span><span style="color: #bc6ec5;">)</span>
+                                          <span style="color: #bc6ec5;">(</span>partial priorization-attr-compare<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+            sorted-attr-set <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #bc6ec5;">(</span>map #<span style="color: #2d9574;">(</span>sort priorization-set-val-cmp <span style="color: #7590db;">%</span><span style="color: #2d9574;">)</span>
+                                      attr-power-set<span style="color: #bc6ec5;">)</span>
+                                 <span style="color: #bc6ec5;">(</span>sort <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #9cb6ad;">[</span>attr-set1 attr-set2<span style="color: #9cb6ad;">]</span>
+                                         <span style="color: #9cb6ad;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #4f97d7;">[</span>l1 <span style="color: #bc6ec5;">(</span>count attr-set1<span style="color: #bc6ec5;">)</span>
+                                               l2 <span style="color: #bc6ec5;">(</span>count attr-set2<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">]</span>
+                                           <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #bc6ec5;">(</span>= l1 l2<span style="color: #bc6ec5;">)</span>
+                                             <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">&#22914;&#26524;&#38271;&#24230;&#30456;&#31561;&#65292;&#21017;&#25353;&#29031;&#20248;&#20808;&#32423;&#39034;&#24207;&#25490;&#24207;</span>
+                                             <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #2d9574;">(</span>zipmap attr-set1 attr-set2<span style="color: #2d9574;">)</span>
+                                                  <span style="color: #2d9574;">(</span>drop-while #<span style="color: #67b11d;">(</span>= <span style="color: #b1951d;">(</span>first <span style="color: #7590db;">%</span><span style="color: #b1951d;">)</span> <span style="color: #b1951d;">(</span>second <span style="color: #7590db;">%</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
+                                                  first
+                                                  <span style="color: #2d9574;">(</span>apply priorization-set-val-cmp<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span>
+                                             <span style="color: #bc6ec5;">(</span>compare l1 l2<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+            gen-attr-set-xpath <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #bc6ec5;">[</span>attrs<span style="color: #bc6ec5;">]</span>
+                                 <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #2d9574;">(</span>map <span style="color: #9cb6ad;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #4f97d7;">[</span><span style="color: #bc6ec5;">[</span>k v<span style="color: #bc6ec5;">]</span><span style="color: #4f97d7;">]</span>
+                                             <span style="color: #4f97d7;">(</span>make-xpath-attr-predicate k v<span style="color: #4f97d7;">)</span><span style="color: #9cb6ad;">)</span>
+                                           attrs<span style="color: #2d9574;">)</span>
+                                      <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">string</span>/join <span style="color: #2d9574;">" and "</span><span style="color: #2d9574;">)</span>
+                                      <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">gstring</span>/format <span style="color: #2d9574;">"[%s]"</span><span style="color: #2d9574;">)</span>
+                                      <span style="color: #2d9574;">(</span>xpath-add-predicate-to-head xpath<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span>
+        <span style="color: #b1951d;">(</span>map gen-attr-set-xpath sorted-attr-set<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">transf-add-position</span>
+  <span style="color: #2aa1ae;">"&#28155;&#21152;&#20301;&#32622;&#32034;&#24341;"</span>
+  <span style="color: #bc6ec5;">[</span>xpath element<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>ancestor <span style="color: #67b11d;">(</span>get-xpath-head-ancestor xpath element<span style="color: #67b11d;">)</span>
+        prev-siblings <span style="color: #67b11d;">(</span>get-previous-element-siblings ancestor<span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #67b11d;">(</span>not <span style="color: #b1951d;">(</span>xpath-head-has-position? xpath<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span>
+      <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #b1951d;">[</span>idx <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">if</span> <span style="color: #bc6ec5;">(</span>xpath-head-with-all? xpath<span style="color: #bc6ec5;">)</span>
+                  <span style="color: #bc6ec5;">(</span>count prev-siblings<span style="color: #bc6ec5;">)</span>
+                  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #2d9574;">(</span>map tag-name prev-siblings<span style="color: #2d9574;">)</span>
+                       <span style="color: #2d9574;">(</span>filter #<span style="color: #9cb6ad;">(</span>= <span style="color: #4f97d7;">(</span>tag-name ancestor<span style="color: #4f97d7;">)</span> <span style="color: #7590db;">%</span><span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
+                       count<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span>
+        <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #4f97d7;">(</span>pos? idx<span style="color: #4f97d7;">)</span>
+          <span style="color: #4f97d7;">(</span>vector <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;&gt;</span> <span style="color: #2d9574;">(</span>str <span style="color: #2d9574;">"["</span> idx <span style="color: #2d9574;">"]"</span><span style="color: #2d9574;">)</span>
+                       <span style="color: #2d9574;">(</span>xpath-add-predicate-to-head xpath<span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">transf-add-level</span>
+  <span style="color: #2aa1ae;">"&#28155;&#21152;&#28145;&#24230;"</span>
+  <span style="color: #bc6ec5;">[</span>xpath element<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #2d9574;">(</span>&lt; <span style="color: #67b11d;">(</span>xpath-length xpath<span style="color: #67b11d;">)</span>
+           <span style="color: #67b11d;">(</span>dec <span style="color: #b1951d;">(</span>get-ancestor-count element<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
+    <span style="color: #2aa1ae; background-color: #292e34;">;;</span><span style="color: #2aa1ae; background-color: #292e34;">(.log js/console "add level:" (str xpath) " ancestor count:" (get-ancestor-count element))</span>
+    <span style="color: #2d9574;">(</span>vector <span style="color: #67b11d;">(</span>xpath-add-head-all xpath<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">locate-count</span>
+  <span style="color: #bc6ec5;">[</span>document xpath<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;</span> <span style="color: #2d9574;">(</span>.evaluate document
+                 xpath
+                 document
+                 <span style="color: #a45bad;">nil</span>
+                 <span style="color: #67b11d;">(</span>oget <span style="color: #ce537a; font-weight: bold;">js</span>/XPathResult <span style="color: #2d9574;">"ORDERED_NODE_SNAPSHOT_TYPE"</span><span style="color: #67b11d;">)</span>
+                 <span style="color: #a45bad;">nil</span><span style="color: #2d9574;">)</span>
+      <span style="color: #2d9574;">(</span>oget <span style="color: #2d9574;">"snapshotLength"</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">unique-locate?</span>
+  <span style="color: #2aa1ae;">"&#21807;&#19968;&#23450;&#20301;&#65311;"</span>
+  <span style="color: #bc6ec5;">[</span>xpath element document<span style="color: #bc6ec5;">]</span>
+  <span style="color: #2aa1ae; background-color: #292e34;">;;</span><span style="color: #2aa1ae; background-color: #292e34;">(.log js/console"check unique xpath:" xpath)</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>node-snap <span style="color: #67b11d;">(</span>.evaluate document
+                             xpath
+                             document
+                             <span style="color: #a45bad;">nil</span>
+                             <span style="color: #b1951d;">(</span>oget <span style="color: #ce537a; font-weight: bold;">js</span>/XPathResult <span style="color: #2d9574;">"ORDERED_NODE_SNAPSHOT_TYPE"</span><span style="color: #b1951d;">)</span>
+                             <span style="color: #a45bad;">nil</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">and</span> <span style="color: #67b11d;">(</span>= <span style="color: #a45bad;">1</span> <span style="color: #b1951d;">(</span>oget node-snap <span style="color: #2d9574;">"snapshotLength"</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span>
+         <span style="color: #67b11d;">(</span>identical? element <span style="color: #b1951d;">(</span>.snapshotItem node-snap <span style="color: #a45bad;">0</span><span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">get-element-by-xpath</span>
+  <span style="color: #bc6ec5;">[</span>document xpath<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;</span> <span style="color: #2d9574;">(</span>.evaluate document
+                 xpath
+                 document
+                 <span style="color: #a45bad;">nil</span>
+                 <span style="color: #67b11d;">(</span>oget <span style="color: #ce537a; font-weight: bold;">js</span>/XPathResult <span style="color: #2d9574;">"FIRST_ORDERED_NODE_TYPE"</span><span style="color: #67b11d;">)</span>
+                 <span style="color: #a45bad;">nil</span><span style="color: #2d9574;">)</span>
+      <span style="color: #2d9574;">(</span>oget <span style="color: #2d9574;">".singleNodeValue"</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">$x</span> <span style="color: #bc6ec5;">(</span>partial get-element-by-xpath <span style="color: #ce537a; font-weight: bold;">js</span>/document<span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">find-xpath</span>
+  <span style="color: #bc6ec5;">[</span>xpath-list doc element<span style="color: #bc6ec5;">]</span>
+  <span style="color: #2aa1ae; background-color: #292e34;">;;</span><span style="color: #2aa1ae; background-color: #292e34;">(js/console.log "xpath-stream:" (str (map xpath-&gt;str xpath-list)))</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #2d9574;">(</span>seq xpath-list<span style="color: #2d9574;">)</span>
+    <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #67b11d;">[</span>xpath <span style="color: #b1951d;">(</span>first xpath-list<span style="color: #b1951d;">)</span>
+          new-xpath-list <span style="color: #b1951d;">(</span>concat <span style="color: #4f97d7;">(</span>transf-convert-star xpath element<span style="color: #4f97d7;">)</span>
+                                 <span style="color: #4f97d7;">(</span>transf-add-id xpath element<span style="color: #4f97d7;">)</span>
+                                 <span style="color: #4f97d7;">(</span>transf-add-text xpath element<span style="color: #4f97d7;">)</span>
+                                 <span style="color: #4f97d7;">(</span>transf-add-attribute xpath element<span style="color: #4f97d7;">)</span>
+                                 <span style="color: #4f97d7;">(</span>transf-add-attribute-set xpath element<span style="color: #4f97d7;">)</span>
+                                 <span style="color: #4f97d7;">(</span>transf-add-position xpath element<span style="color: #4f97d7;">)</span>
+                                 <span style="color: #4f97d7;">(</span>transf-add-level xpath element<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">)</span>
+          paths <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;</span> new-xpath-list
+                    distinct
+                    vec<span style="color: #b1951d;">)</span><span style="color: #67b11d;">]</span>
+      <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">if-let</span> <span style="color: #b1951d;">[</span>result <span style="color: #4f97d7;">(</span>some #<span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">when</span> <span style="color: #2d9574;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;</span> <span style="color: #9cb6ad;">(</span>xpath-&gt;str <span style="color: #7590db;">%</span><span style="color: #9cb6ad;">)</span>
+                                       <span style="color: #9cb6ad;">(</span>unique-locate? element doc<span style="color: #9cb6ad;">)</span><span style="color: #2d9574;">)</span>
+                               <span style="color: #7590db;">%</span><span style="color: #bc6ec5;">)</span>
+                            paths<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">]</span>
+        result
+        <span style="color: #b1951d;">(</span><span style="color: #4f97d7; font-weight: bold;">recur</span> <span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">-&gt;</span> xpath-list
+                   rest
+                   <span style="color: #bc6ec5;">(</span>concat paths<span style="color: #bc6ec5;">)</span>
+                   vec<span style="color: #4f97d7;">)</span>
+               doc
+               element<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+
+<span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">defn</span> <span style="color: #bc6ec5; font-weight: bold;">get-robust-xpath</span>
+  <span style="color: #bc6ec5;">[</span>document element<span style="color: #bc6ec5;">]</span>
+  <span style="color: #bc6ec5;">(</span><span style="color: #4f97d7; font-weight: bold;">let</span> <span style="color: #2d9574;">[</span>r <span style="color: #67b11d;">(</span>time
+           <span style="color: #b1951d;">(</span>find-xpath <span style="color: #4f97d7;">[</span>xpath-all<span style="color: #4f97d7;">]</span> document element<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span><span style="color: #2d9574;">]</span>
+    <span style="color: #2d9574;">(</span><span style="color: #ce537a; font-weight: bold;">js</span>/console.log <span style="color: #2d9574;">"xpath depth:"</span> <span style="color: #67b11d;">(</span>xpath-length r<span style="color: #67b11d;">)</span><span style="color: #2d9574;">)</span>
+    <span style="color: #2d9574;">(</span>xpath-&gt;str r<span style="color: #2d9574;">)</span>
+    <span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgbadbf4b" class="outline-2">
+<h2 id="orgbadbf4b"><span class="section-number-2">3</span> 运行测试</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+当xpath路径比较深的时候，查找速度就很慢，因为要不断执行evaluate进行xpath测试。
+</p>
+
+<div class="figure">
+<p><img src="./perf-xpath-1.png" alt="perf-xpath-1.png" />
+</p>
+<p><span class="figure-number">&#22270;1&nbsp; </span>chrome性能分析结果,黄色为GC执行时间,褐色为evaluate执行时间</p>
+</div>
+
+
+<div class="figure">
+<p><img src="./perf-eval-xpath.png" alt="perf-eval-xpath.png" />
+</p>
+<p><span class="figure-number">&#22270;2&nbsp; </span>find_xpath执行耗时(局部放大)</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgbb74207" class="outline-2">
+<h2 id="orgbb74207"><span class="section-number-2">4</span> 总结</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+因为robula+算法依靠不断地进行xpath测试，来找到最短的xpath定位器，所以性能受到唯一定位的层级深度影响。当超过5层的时候，就需要几秒钟才能找到xpath定位器，性能不是很理想。
+</p>
+
+<p>
+通过减少执行xpath测试的次数,或者使用css定位器进行查找，速度应该会更快一点，留到下一节实现。
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">&#20316;&#32773;: ntestoc</p>
+<p class="date">Created: 2020-01-31 五 15:39</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,64 @@
+#+TITLE: 编程解决谁是凶手的问题
+#+DESCRIPTION: 使用Clojure解决小学二年级数学中谁是凶手的问题。
+#+KEYWORDS: programming, Clojure
+#+CATEGORIES: 编程
+#+LANGUAGE: zh-CN
+
+* 简介
+  使用代码来解决小学问题，具体题目如下图。
+
+#+CAPTION: 谁是凶手
+[[./shuishixiongshou.jpg]]
+
+
+* 具体实现
+  主要在于条件判断。每句话所指的都不是说话者自身；只有无辜者说真话，并且至少有一句话是无辜者说的。
+
+#+begin_src clojure :results pp :exports both
+(defn permutations
+  "计算排列"
+  [s]
+  (lazy-seq
+   (if (seq (rest s))
+     (apply concat (for [x s]
+                     (map #(cons x %) (permutations (remove #{x} s)))))
+     [s])))
+
+(permutations [1 2 3])
+;; => ((1 2 3) (1 3 2) (2 1 3) (2 3 1) (3 1 2) (3 2 1))
+
+;; 所有可能结果的集合
+(def results (map zipmap (cycle [guys]) (permutations [:凶手 :帮凶 :无辜者])))
+
+;; 要检测的语句
+(def exps {:甲 #(not= (:甲 %) :帮凶)
+           :乙 #(not= (:乙 %) :凶手)
+           :丙 #(not= (:丙 %) :无辜者)})
+
+(def guys (set (keys exps)))
+
+(doseq [r results]
+  (let [good-guy (:无辜者 (clojure.set/map-invert r))]
+    ;;找到正确答案的条件
+    (when (and (not ((exps good-guy) r)) 
+               ;; 只有无辜者说真话,因此关于无辜者自己的话(另外的人说的)必须为假
+
+               (some #(% r) (->> (disj guys good-guy)
+                                 (select-keys exps)
+                                 vals))                
+               ;; 与无辜者不相关的话至少有一个为真
+               )
+      (println "result:" r "\n"
+               "甲不是帮凶:" ((:甲 exps) r) "\n"
+               "乙不是凶手:" ((:乙 exps) r) "\n"
+               "丙不是无辜者:" ((:丙 exps) r)))))
+
+
+#+end_src
+
+#+RESULTS:
+: result: {:乙 :帮凶, :甲 :凶手, :丙 :无辜者} 
+:  甲不是帮凶: true 
+:  乙不是凶手: true 
+:  丙不是无辜者: false
+: nil

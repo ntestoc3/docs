@@ -1,0 +1,60 @@
+#+TITLE: 迷宫塔生成工具
+#+DESCRIPTION: 使用Clojure实现生成迷宫,并生成加密的迷宫塔
+#+KEYWORDS: programming, Clojure
+#+CATEGORIES: 编程
+#+LANGUAGE: zh-CN
+
+* 简介
+  使用Clojure生成迷宫，然后把许多个迷宫的每一层解密路径作为zip密码，生成一个迷宫套娃。 迷宫生成的代码来自[[https://github.com/glv/snergly][github]]。
+
+  主要是练习gui开发，使用[[https://github.com/cljfx/cljfx][cljfx]]库(包装了JavaFX)进行界面开发,使用起来还不是很顺手，与[[https://github.com/daveray/seesaw][seesaw]]相比，没有seesaw与swing的配合方式用起来爽。不过响应式界面是现在的流行,有一些界面刷新的问题，使用了才知道,cljfx的事件处理方式不是很好用，也不能做到事件嵌套。用text-area实现一个日志输出窗口，折腾了很久也没弄好，滚动条逻辑不好实现。
+
+ 
+#+CAPTION: 程序主界面
+[[./maze_tower.png]]
+
+  首先设置好一系列参数，点生成，就可以生成相应数量的迷宫图片。
+
+  再设置迷宫塔的生成参数，选择最顶层包含的文件，然后生成迷宫塔，注意迷宫塔文件的保存格式必须是图片：.png或.jpg后缀的文件，保存后会有一个同名的.pass.txt为解密密码文件,按照顺序每一层的zip密码与之对应。
+
+  整个项目的[[https://github.com/ntestoc3/maze-tower][代码文件]]。
+
+* 范围值的使用
+  因为要随机生成行数，列数，和路径长度等，需要提供范围值。范围值可以是一个数值(固定值)，也可以是指定[min max]最小最大范围的区间值(取范围内一个随机整数)，也可以是数值集合(随机从集合中取一个数值)。
+  
+#+CAPTION: 范围值的实现代码
+#+include: "/home/ntestu/code/maze-tower/src/maze_tower/util.clj" :src clojure :lines "44-113"
+
+  通过界面设置范围值需要提供value-converter,在views中实现。
+#+CAPTION: 范围值的value-converter
+#+include: "/home/ntestu/code/maze-tower/src/maze_tower/gui/views.clj" :src clojure :lines "12-18"
+
+* combo-box的value-converer
+  对于需要转换值和界面显示字符串的部分，JavaFX提供了StringValueConverter。
+  但是对于combo-box, converter处理的时候没有包含异常处理，如果输入值不合法就抛出异常。
+  需要自己进行包装。
+
+ #+CAPTION: 针对combo-box的value-converter
+#+include: "/home/ntestu/code/maze-tower/src/maze_tower/gui/views.clj" :src clojure :lines "19-30"
+
+* 项目打包
+  直接用lein uberjar打包后，发现在windows下执行会报错:
+
+#+begin_example
+Graphics Device initialization failed for :  d3d, sw
+Error initializing QuantumRenderer: no suitable pipeline found
+#+end_example
+
+  原因是JavaFX的windows依赖没有添加，在project.clj中添加依赖即可提供对windows的支持，mac系统也类似:
+#+begin_src clojure
+;; 添加JavaFX的windows和mac系统支持
+[org.openjfx/javafx-graphics "13" :classifier "win"]
+[org.openjfx/javafx-graphics "13" :classifier "mac"]
+#+end_src
+
+  打包之后的jar文件有50M,已经包含了openjfx库，但是不包含jdk,加上jdk打包成独立可执行文件的话，也有80M左右了，Java写桌面GUI还是太巨大了，最后的可执行程序大小与Electron程序差不多。
+
+  通过去掉没有使用的openjfx依赖，主要是webkit,使打包后的文件体积从50M降到20M，主要是webkit太大了，就是内嵌一个浏览器。
+
+  提供一个打包好的release:[[https://share.weiyun.com/5sqa1Tk][微云下载]],最低需要jdk 11才能正常运行,已添加windows、mac下的依赖包,可直接运行。
+
