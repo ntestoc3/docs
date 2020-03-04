@@ -1,0 +1,336 @@
+#+TITLE: diehard--让你的程序更健壮
+#+DESCRIPTION: clojure diehard库的使用
+#+KEYWORDS: programming, clojure
+#+CATEGORIES: 编程,错误处理
+#+LANGUAGE: zh-CN 
+
+* 简介
+  当程序进行io操作时，总会出现意外情况，网络连接不稳定，磁盘响应太慢等。
+  跟假定的理想情况不同，就会造成程序不稳定。这时就需要通过超时、重试等方法对这些操作进行包装，以增强程序稳定性。
+
+  [[https://github.com/sunng87/diehard][diehard]]库是对java failsafe库的包装，这篇文章简单介绍下diehard库的使用。
+
+  
+* 重试
+
+** 简单重试
+  当io请求出现错误时，需要进行重试操作。
+#+begin_src clojure  :results pp :exports both
+(require '[diehard.core :as dh])
+
+(dh/with-retry
+  {
+   ;; 重试的条件，出现异常的时候重试, 可以匹配某个具体的异常
+   :retry-on Exception
+
+   ;; 每次进行重试操作时执行
+   :on-failed-attempt (fn [r e]
+                        (prn "retry result:" r))
+   ;; 最大重试次数
+   :max-retries 3
+   }
+
+  ;; io 操作， 这里使用随机异常代替不可靠io
+  (prn "run")
+  (when (> (rand-int 10) 2)
+    (throw (ex-info "bad io" {:a 1})))
+  :ok
+  )
+#+end_src
+
+#+RESULTS:
+#+begin_example
+"run"
+"retry result:" nil
+"run"
+"retry result:" nil
+"run"
+"retry result:" nil
+"run"
+"retry result:" nil
+class clojure.lang.ExceptionInfoclass clojure.lang.ExceptionInfoExecution error (ExceptionInfo) at ntru_backend.server$eval46877$reify__46880/call (form-init1235280702236101667.clj:18).
+bad io
+#+end_example
+   重试达到3次后(加上第一次执行，共4次)继续返回异常
+
+#+RESULTS1:
+: "run"
+: "retry result:" nil
+: "run"
+: :ok
+   重试1次，正常返回:ok
+
+   可以看到，当3次重试都出现异常时，继续返回异常。 否则返回结果:ok。
+
+** 带超时的重试
+  with-retry可以控制重试执行的时间，如果在指定的时间内不断重试还是失败，则按失败返回。
+  
+ #+begin_src clojure  :results pp :exports both
+ (dh/with-retry
+   {
+    ;; 根据返回结果重试，如果返回结果是:error则进行重试
+    :retry-when :error
+
+    ;; 最终失败时执行
+    :on-failure (fn [r e]
+                  (prn "failed!" r)
+                  )
+
+    ;; 最终成功时执行
+    :on-success (fn [_]
+                  (prn "success!")
+                  )
+
+    ;; 每次进行重试操作时执行
+    :on-failed-attempt (fn [r e]
+                         (prn "retry result:" r))
+    ;; 最大重试次数
+    :max-retries 5
+
+    ;; 重试执行总时间超过多久则失败返回,这里指定5秒, 可以与:max-retries结合
+    :max-duration-ms 5000
+    }
+
+   ;; io 操作， 这里使用随机数代表不可控io
+   (prn "run")
+   (Thread/sleep 2000) ;; 模拟长时间io操作
+   (if (> (rand-int 10) 2)
+     :error
+     :ok
+     )
+   )
+#+end_src
+
+#+RESULTS:
+: "run"
+: "retry result:" :error
+: "run"
+: "retry result:" :error
+: "run"
+: "retry result:" :error
+: "failed!" :error
+: :error
+    执行3次，共6秒，超过设置的执行时间，就失败返回。
+
+
+#+RESULTS1:
+: "run"
+: "retry result:" :error
+: "run"
+: "success!"
+: :ok
+  重试1次后成功。
+
+** 带等待时间的重试 
+  with-retry还可以控制每次重试进行等待,不会马上进行重试操作。
+ 
+ #+begin_src clojure  :results pp :exports both
+ (dh/with-retry
+   {
+    ;; 根据函数进行重试，如果函数返回true,则进行重试
+    :retry-if (fn [r e]
+                (or (instance? Exception e)
+                    (> r 2))) ;; 如果出现异常或返回结果大于2则重试
+
+    ;; 最终失败时执行
+    :on-failure (fn [r e]
+                  (prn "failed!" r " exception:" (ex-message e))
+                  )
+
+    ;; 最终成功时执行
+    :on-success (fn [_]
+                  (prn "success!")
+                  )
+
+    ;; 每次进行重试操作时执行
+    :on-failed-attempt (fn [r e]
+                         (prn "retry result:" r " exception:" (ex-message e)))
+    ;; 最大重试次数
+    :max-retries 5
+
+    ;; 重试执行总时间超过多久则失败返回,这里指定5秒, 可以与:max-retries结合
+    :max-duration-ms 5000
+
+    ;; 每次重试等待的时间间隔，重试次数*500 最大等待时间为5秒
+    :backoff-ms [500 5000]
+    }
+
+   ;; io 操作， 这里使用随机数代表不可控io
+   (prn "run")
+   (if (> (rand-int 10) 5)
+     (throw (ex-info "bad io" {:a 1}))
+     (rand-int 10)))
+#+end_src
+
+#+RESULTS:
+: "run"
+: "retry result:" nil " exception:" "bad io"
+: "run"
+: "retry result:" 5 " exception:" nil
+: "run"
+: "retry result:" 5 " exception:" "bad io"
+: "run"
+: "success!"
+: 1
+   重试3次后成功返回。
+
+#+RESULTS1:
+#+begin_example
+"run"
+"retry result:" nil " exception:" "bad io"
+"run"
+"retry result:" nil " exception:" "bad io"
+"run"
+"retry result:" 5 " exception:" nil
+"run"
+"retry result:" 5 " exception:" "bad io"
+"failed!" 5 " exception:" "bad io"
+class clojure.lang.ExceptionInfoclass clojure.lang.ExceptionInfoExecution error (ExceptionInfo) at ntru_backend.server$eval47119$reify__47129/call (form-init1235280702236101667.clj:34).
+bad io
+#+end_example
+   重试4次后失败返回，总的等待时间为500 + 1000 + 1500 + 2000,每次等待时间递增，共5秒,总的执行时间超过了:max-duration-ms,因此执行失败。
+
+* 断路器
+  当需要根据操作执行的错误率(即响应质量)来决定是否继续提供服务的时候，就可以使用断路器,以提供自我保护，防止连续不断的产生错误，进而造成服务完全堵死。
+  
+#+begin_src clojure
+;; 断路器有3个状态
+;; `:open` 打开状态(切断状态)，所有执行请求被拒绝，抛出`CircuitBreakerOpenException`异常
+;; `:half-open` 半打开状态,只接受指定数量的请求，测试状态是否恢复
+;; `:close` 关闭状态(通路状态)，正常执行
+
+(dh/defcircuitbreaker my-cb {
+                             ;; 失败条件，和with-retry相同
+                             :fail-when :error
+
+                             ;; 失败的比例，如果5次执行中有3次失败,则断路器打开
+                             ;;  拒绝所有请求
+                             :failure-threshold-ratio [3 5]
+
+                             ;; 断路器进入打开状态后，等待`:delay-ms`指定的时间，然后进入半开状态
+                             ;; 半开状态会接受5个执行请求，测试状态是否恢复，如果恢复
+                             ;; 则断路器进入关闭状态。否则，继续处于打开状态
+                             :delay-ms 1000
+
+                             :on-open (fn [] (prn "断路器打开"))
+                             :on-close (fn [] (prn "断路器关闭"))
+                             :on-half-open (fn [] (prn "断路器进入半开状态"))
+                             })
+
+(dh/with-circuit-breaker my-cb
+  (if (> (rand-int 5) 2)
+    :error
+    :ok))
+#+end_src
+   不断执行上面的代码，可以看到断路器的效果
+
+* 限速器
+  当限制操作执行速度的时候，就可以使用限速器，限制每秒执行次数，可以抛出异常或阻塞。
+  
+#+begin_src clojure  :results pp :exports both
+(dh/defratelimiter my-rl {
+                          ;; 每秒执行10次
+                          :rate 10})
+
+(pmap ;; 使用并行执行进行测试
+     (fn [i]
+       (try
+         (dh/with-rate-limiter {:ratelimiter my-rl
+                                ;; 如果不指定等待时间，将阻塞执行并返回结果
+                                ;; 否则在达到等待时间后，抛出异常
+                                :max-wait-ms 400
+                                } 
+           (Thread/sleep 1000)
+           (locking *out* ;; 防止并发执行，弄乱输出缓冲区
+             (println "tasks" i)))
+         (catch Exception e
+           (locking *out*
+             (println "exception " i)))))
+     (range 20))
+
+#+end_src
+
+#+RESULTS:
+#+begin_example
+exception  11
+exception  5
+exception  15
+exception  2
+exception  7
+exception  13
+exception  14
+exception  12
+exception  8
+exception  18
+exception  0
+exception  10
+(exception  17
+exception nil 6
+exception  1
+exception  4
+tasks 16
+tasks 3
+tasks 9
+tasks 19
+
+ nil
+ nil
+ nil
+ nil
+ nil
+ nil
+ nil
+ nil
+ nil
+ nil
+ nil
+ nil
+ nil
+ nil
+ nil
+ nil
+ nil
+ nil
+ nil)
+#+end_example
+   等待400ms只能执行4个task,因为1000ms执行10个。如果去掉:max-wait-ms,则全部都能顺利返回结果，不过会阻塞执行。
+
+* 隔板(Bulkhead)
+  限制并行执行的数量
+  
+#+begin_src clojure  :results pp :exports both
+(dh/defbulkhead my-bh {:concurrency 3})
+
+(pmap
+ (fn [i]
+   (dh/with-bulkhead {:bulkhead my-bh
+                      ;; 与限速器的参数相同
+                      ;; :max-wait-ms 400
+                      }
+     (Thread/sleep 1000)
+     (locking *out*
+       (println "tasks" i))))
+ (range 10))
+#+end_src
+
+#+RESULTS:
+#+begin_example
+tasks 3
+tasks 9
+tasks 8
+tasks 4
+tasks 0
+tasks 1
+tasks 5
+tasks 2
+tasks 6
+tasks 7
+(nil nil nil nil nil nil nil nil nil nil)
+#+end_example
+  输出结果无法看清楚执行状况，执行时可以看到每3个一批执行。
+  
+* 总结
+  通过重试、断路器、限速器、隔板的使用，可以让程序应对多变的外部世界时更加健壮，不怕失败。
+  
+  
+
