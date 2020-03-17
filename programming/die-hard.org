@@ -347,7 +347,9 @@ tasks 7
 : class net.jodah.failsafe.TimeoutExceededExceptionclass net.jodah.failsafe.TimeoutExceededExceptionExecution error (TimeoutExceededException) at net.jodah.failsafe.TimeoutExecutor/lambda$null$0 (TimeoutExecutor.java:66).
 : null
 
-  如果不设置:interrupt?为ture,虽然超过时间会抛出异常，整个代码块还是执行完毕了,并不会强制停止执行一半的代码。 但是中断返回时，sh启动的进程并不会退出。
+  如果不设置:interrupt?为ture,虽然超过时间会抛出异常，但整个代码块还是执行完毕了,并不会强制停止执行一半的代码。 
+
+  不过中断返回时，sh启动的进程并不会退出。
 
 * 总结
   通过重试、断路器、限速器、隔板、超时器的使用，可以让程序应对多变的外部世界时更加健壮，不怕失败。
