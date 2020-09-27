@@ -1,0 +1,59 @@
+#+TITLE: 使用Clojure编写burp扩展脚本
+#+DESCRIPTION: 练习使用clojure开发java插件
+#+KEYWORDS: programming, burp extension, Clojure
+#+CATEGORIES: 编程,burp
+#+LANGUAGE: zh-CN
+
+
+* 插件简介
+  [[https://github.com/ntestoc3/burp-clj][burp-clj]]插件提供使用clojure编写burp脚本的功能。由于clojure的repl工作流很强大，开启nrepl之后，可以直接在burp的jvm进程中进行调试测试，非常方便。
+
+
+* 使用方法
+  在[[https://github.com/ntestoc3/burp-clj/releases/latest][release]]页面下载jar文件，然后在Burp Extender选项卡中加载jar插件。
+  
+  加载成功后，会出现Clojure Plugin选项卡，点Add添加脚本目录，支持github地址和本地目录。
+  可以添加示例脚本地址https://github.com/ntestoc3/burp-scripts:
+  
+#+CAPTION: 添加脚本目录
+#+NAME: fig:1
+[[./burp_clj_1.png]]
+
+  第一次加载会下载依赖包，速度比较慢。
+  
+  脚本列表里显示脚本名称，版本号和是否启用。
+#+CAPTION: 脚本列表
+#+NAME: fig:2
+[[./burp_clj_2.png]]
+
+  脚本可以使用burp extender API的所有功能,burp-clj提供了简单的包装。
+
+  比如nrepl.clj脚本提供了启动/停止clojure nrepl的功能，使用burp extender API添加了一个新的选项卡(使用reg-script!包装过的声明式的方式生成选项卡)。
+#+CAPTION: nrepl脚本选项卡
+#+NAME: fig:3
+[[./burp_clj_3.png]]
+
+  注册burp选项卡的代码:
+#+include: "/home/ntestu/code/burp-scripts/nrepl.clj" :src clojure :lines "144-"
+
+* 脚本编写方法
+  burp-clj提供对各种register和remove方法的封装，不要在脚本中调用这些方法，否则会造成脚本reload功能异常。使用reg-script!函数注册脚本的各种功能，可以参考[[https://github.com/ntestoc3/burp-scripts][burp-scripts]]中的脚本，例如shiro\under{}check.clj:
+#+include: "/home/ntestu/code/burp-scripts/shiro_check.clj" :src clojure :lines "36-"
+
+  脚本中可以使用add-dep添加新的依赖包，例如ip\under{}loc.clj中:
+#+begin_src clojure
+(utils/add-dep '[[ntestoc3/netlib "0.3.4-SNAPSHOT"]])
+(require '[netlib.qqwry :as qqwry])
+#+end_src
+
+
+* 总结
+  burp-clj对Burp Extender API进行包装,并提供clojure运行时环境，通过nrepl可以方便地操作burp，针对特定操作也可以直接修改脚本，动态加载卸载。
+
+  现阶段命名空间组织比较分散,也缺少相应的文档注释。
+  
+  注意不要加载来源不明的脚本文件，脚本可以执行任意代码，可能会危害本地系统。
+  
+  如果有burp插件需求，欢迎提issue。
+
+  
