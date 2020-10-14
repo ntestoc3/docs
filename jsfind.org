@@ -1,0 +1,76 @@
+#+TITLE: jsfind--扫描js文件中链接的burp插件
+#+DESCRIPTION: burp
+#+KEYWORDS: clojure, burp
+#+CATEGORIES: clojure, burp
+#+LANGUAGE: zh-CN
+#+OPTIONS: ^:t
+
+* 简介
+  随着SPA网页的兴起，js文件中会包含大量前端路由和后端api的链接信息，获取到这些链接能提供更多的有效信息。
+  
+  burp自带的JS Link Finder效果很不错，不过找到的链接不能直接复制使用，需要再做处理，使用起来很不方便，根据[[https://github.com/portswigger/js-link-finder][js-link-finder]]使用burp-clj脚本重新实现，并根据[[https://github.com/GerbenJavado/LinkFinder][LinkFinder]]提供的正则表达式，新增了REST API的支持，现在可以直接通过[[https://github.com/ntestoc3/burp-scripts/blob/master/jslink.clj][jslink]]对js中找到的链接进行处理，然后作为burp Intruder的payload使用。
+
+* 安装方法
+
+#+CAPTION: 插件安装流程
+#+NAME: fig:5
+[[./burp-clj-install.gif]]
+
+** 安装burp-clj插件
+ 下载[[https://github.com/ntestoc3/burp-clj/releases][burp-clj]]最新版本的burp-clj.jar,然后在burp Extender中加载jar插件。
+  
+#+CAPTION: burp Extender加载burp-clj.jar插件
+#+NAME: fig:1
+[[./burp-clj-1.png]]
+
+** 添加脚本源
+   启用burp-clj插件后，切换Clojure Plugin选项卡,点Add按钮添加脚本源：https://github.com/ntestoc3/burp-scripts ，这里使用github地址，也可以git clone下来，使用本地目录。
+
+#+CAPTION: Clojure Plugin添加脚本源
+#+NAME: fig:2
+[[./burp-clj-2.png]]
+
+   添加脚本源之后，点Reload Scripts!加载脚本。
+
+** 启用jslink脚本
+   在Clojure Plugin选项卡的Scripts List中勾选js link parse的复选框，启用jslink脚本。
+#+CAPTION: 启用jslink脚本
+#+NAME: fig:4
+[[./burp-clj-4.png]]
+
+
+   
+* 使用方法
+#+CAPTION: jslink使用方法
+#+NAME: fig:6
+[[./burp-clj-jslink.gif]]
+
+  浏览器通过burp代理访问网站，jsfind会被动扫描js文件，扫描到含有链接的js文件会生成issue。
+
+  JS Links选项卡可以看到所有扫描到的包含链接的js文件，可以同时在左侧列表选择多个js文件(按ctrl或shift多选)，右边列表会显示所有选中js文件中的链接。
+#+CAPTION: JS Links查看多个js文件中的链接
+#+NAME: fig:7
+[[./burp-clj-5.png]]
+
+  针对不需要的链接可以选中后删除，然后通过 *删除链接前面的./字符* 按钮统一链接的格式，方便intruder使用。
+
+  注意链接列表中的删除并不会保存，再次切换到对应的js文件，原先的链接还会存在。
+
+* 注意事项
+  如果浏览器访问过目标网站，则js文件会缓存，再次访问burp里面只能看到304,不会分析文件内容，需要清空缓存并硬性重新加载，用于在burp中获取js内容。
+
+  burp项目中的issue信息会保存，但jslink找到的链接不会保存，jslink脚本重新加载的话，已经分析的链接信息会丢失。
+
+* 最后
+  感谢 https://github.com/portswigger/js-link-finder 的burp插件思路
+
+  感谢 https://github.com/GerbenJavado/LinkFinder 的正则表达式
+
+  本程序仅供于学习交流，请使用者遵守《中华人民共和国网络安全法》， 勿将此工具用于非授权的测试， 程序开发者不负任何连带法律责任。
+
+
+   
+
+  
+  
+  

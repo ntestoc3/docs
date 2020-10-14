@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
+<head>
+<!-- 2020-09-27 日 22:40 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>使用Clojure编写burp扩展脚本</title>
+<meta name="generator" content="Org mode" />
+<meta name="author" content="ntestoc" />
+<meta name="description" content="练习使用clojure开发java插件"
+ />
+<meta name="keywords" content="programming, burp extension, Clojure" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { width: 90%; }
+  /*]]>*/-->
+</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<style type="text/css">
+ pre.src {background-color: #292b2e; color: #b2b2b2;}</style>
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">使用Clojure编写burp扩展脚本</h1>
+<div id="table-of-contents">
+<h2>&#30446;&#24405;</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#orgc8207a7">1. 插件简介</a></li>
+<li><a href="#org886dc4c">2. 使用方法</a></li>
+<li><a href="#orga42e057">3. 脚本编写方法</a></li>
+<li><a href="#orgd99c33f">4. 总结</a></li>
+</ul>
+</div>
+</div>
+
+
+<div id="outline-container-orgc8207a7" class="outline-2">
+<h2 id="orgc8207a7"><span class="section-number-2">1</span> 插件简介</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+<a href="https://github.com/ntestoc3/burp-clj">burp-clj</a>插件提供使用clojure编写burp脚本的功能。由于clojure的repl工作流很强大，开启nrepl之后，可以直接在burp的jvm进程中进行调试测试，非常方便。
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-org886dc4c" class="outline-2">
+<h2 id="org886dc4c"><span class="section-number-2">2</span> 使用方法</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+在<a href="https://github.com/ntestoc3/burp-clj/releases/latest">release</a>页面下载jar文件，然后在Burp Extender选项卡中加载jar插件。
+</p>
+
+<p>
+加载成功后，会出现Clojure Plugin选项卡，点Add添加脚本目录，支持github地址和本地目录。
+可以添加示例脚本地址<a href="https://github.com/ntestoc3/burp-scripts">https://github.com/ntestoc3/burp-scripts</a>:
+</p>
+
+
+<div id="orgb881504" class="figure">
+<p><img src="./burp_clj_1.png" alt="burp_clj_1.png" />
+</p>
+<p><span class="figure-number">&#22270;1&nbsp; </span>添加脚本目录</p>
+</div>
+
+<p>
+第一次加载会下载依赖包，速度比较慢。
+</p>
+
+<p>
+脚本列表里显示脚本名称，版本号和是否启用。
+</p>
+
+<div id="org671cf89" class="figure">
+<p><img src="./burp_clj_2.png" alt="burp_clj_2.png" />
+</p>
+<p><span class="figure-number">&#22270;2&nbsp; </span>脚本列表</p>
+</div>
+
+<p>
+脚本可以使用burp extender API的所有功能,burp-clj提供了简单的包装。
+</p>
+
+<p>
+比如nrepl.clj脚本提供了启动/停止clojure nrepl的功能，使用burp extender API添加了一个新的选项卡(使用reg-script!包装过的声明式的方式生成选项卡)。
+</p>
+
+<div id="org937eda9" class="figure">
+<p><img src="./burp_clj_3.png" alt="burp_clj_3.png" />
+</p>
+<p><span class="figure-number">&#22270;3&nbsp; </span>nrepl脚本选项卡</p>
+</div>
+
+<p>
+注册burp选项卡的代码:
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">reg</span> <span style="color: #bc6ec5;">(</span><span style="color: #ce537a; font-weight: bold;">scripts</span>/reg-script! <span style="color: #a45bad;">:nrepl-server</span>
+                              <span style="color: #2d9574;">{</span><span style="color: #a45bad;">:name</span> <span style="color: #2d9574;">"clojure nrepl server"</span>
+                               <span style="color: #a45bad;">:version</span> <span style="color: #2d9574;">"0.0.1"</span>
+                               <span style="color: #a45bad;">:min-burp-clj-version</span> <span style="color: #2d9574;">"0.1.1"</span>
+
+                               <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">&#21551;&#29992;&#33050;&#26412;&#26102;&#25191;&#34892;</span>
+                               <span style="color: #a45bad;">:enable-callback</span> <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>_<span style="color: #b1951d;">]</span> <span style="color: #b1951d;">(</span>start-nrepl<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span>
+
+                               <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">&#31105;&#29992;&#33050;&#26412;&#26102;&#25191;&#34892;</span>
+                               <span style="color: #a45bad;">:disable-callback</span> <span style="color: #67b11d;">(</span><span style="color: #4f97d7; font-weight: bold;">fn</span> <span style="color: #b1951d;">[</span>_<span style="color: #b1951d;">]</span> <span style="color: #b1951d;">(</span>stop-nrepl<span style="color: #b1951d;">)</span><span style="color: #67b11d;">)</span>
+
+                               <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">&#28155;&#21152;tab</span>
+                               <span style="color: #a45bad;">:tab</span> <span style="color: #67b11d;">{</span><span style="color: #a45bad;">:nrepl-main</span> <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">tab&#30340;key,&#24517;&#39035;&#20840;&#23616;&#21807;&#19968;</span>
+
+                                     <span style="color: #b1951d;">{</span><span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">&#26631;&#39064;</span>
+                                      <span style="color: #a45bad;">:captain</span> <span style="color: #2d9574;">"nREPL"</span>
+
+                                      <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">gui&#35270;&#22270;</span>
+                                      <span style="color: #a45bad;">:view</span> <span style="color: #4f97d7;">(</span>make-nrepl-view<span style="color: #4f97d7;">)</span><span style="color: #b1951d;">}</span>
+
+                                     <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">&#21487;&#20197;&#28155;&#21152;&#26356;&#22810;&#30340;tab,&#20351;&#29992;&#19981;&#21516;&#30340;key</span>
+                                     <span style="color: #67b11d;">}</span>
+                               <span style="color: #2d9574;">}</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orga42e057" class="outline-2">
+<h2 id="orga42e057"><span class="section-number-2">3</span> 脚本编写方法</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+burp-clj提供对各种register和remove方法的封装，不要在脚本中调用这些方法，否则会造成脚本reload功能异常。使用reg-script!函数注册脚本的各种功能，可以参考<a href="https://github.com/ntestoc3/burp-scripts">burp-scripts</a>中的脚本，例如shiro_check.clj:
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #4f97d7; font-weight: bold;">def</span> <span style="color: #7590db;">reg</span> <span style="color: #bc6ec5;">(</span><span style="color: #ce537a; font-weight: bold;">scripts</span>/reg-script! <span style="color: #a45bad;">:shiro-check</span> <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">&#33050;&#26412;&#21807;&#19968;id,&#22914;&#26524;&#25191;&#34892;&#22810;&#27425;,&#26368;&#21518;&#19968;&#27425;&#25191;&#34892;&#30340;&#29983;&#25928;</span>
+                              <span style="color: #2d9574;">{</span><span style="color: #a45bad;">:name</span> <span style="color: #2d9574;">"jsp shiro check"</span> <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">&#33050;&#26412;&#21517;&#23383;</span>
+                               <span style="color: #a45bad;">:version</span> <span style="color: #2d9574;">"0.0.1"</span> <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">&#24403;&#21069;&#29256;&#26412;&#21495;</span>
+                               <span style="color: #a45bad;">:min-burp-clj-version</span> <span style="color: #2d9574;">"0.1.1"</span> <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">burp-clj&#26368;&#20302;&#29256;&#26412;&#21495;</span>
+
+                               <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">&#28155;&#21152; proxy listener</span>
+                               <span style="color: #a45bad;">:proxy-listener</span> <span style="color: #67b11d;">{</span><span style="color: #a45bad;">:</span><span style="color: #ce537a; font-weight: bold;">shiro-check</span><span style="color: #b2b2b2; background-color: #292b2e;">/</span><span style="color: #a45bad;">cookie-check</span> <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">proxy listener&#30340;key,&#33258;&#24049;&#25351;&#23450;&#65292;&#19981;&#36807;&#25152;&#26377;&#33050;&#26412;&#30340;key&#19981;&#33021;&#26377;&#37325;&#22797;&#65292;&#24314;&#35758;&#20351;&#29992;&#24102;&#21629;&#21517;&#31354;&#38388;&#30340;keyword</span>
+                                                <span style="color: #b1951d;">(</span>shiro-check-proxy<span style="color: #b1951d;">)</span>
+
+                                                <span style="color: #2aa1ae; background-color: #292e34;">;; </span><span style="color: #2aa1ae; background-color: #292e34;">&#21487;&#20197;&#25351;&#23450;&#22810;&#20010;proxy listener, &#20351;&#29992;&#19981;&#21516;&#30340;key&#21363;&#21487;</span>
+                                                <span style="color: #67b11d;">}</span>
+                               <span style="color: #2d9574;">}</span><span style="color: #bc6ec5;">)</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+
+<p>
+脚本中可以使用add-dep添加新的依赖包，例如ip_loc.clj中:
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #4f97d7;">(</span><span style="color: #ce537a; font-weight: bold;">utils</span>/add-dep '<span style="color: #bc6ec5;">[</span><span style="color: #2d9574;">[</span><span style="color: #ce537a; font-weight: bold;">ntestoc3</span>/netlib <span style="color: #2d9574;">"0.3.4-SNAPSHOT"</span><span style="color: #2d9574;">]</span><span style="color: #bc6ec5;">]</span><span style="color: #4f97d7;">)</span>
+<span style="color: #4f97d7;">(</span>require '<span style="color: #bc6ec5;">[</span>netlib.qqwry <span style="color: #a45bad;">:as</span> qqwry<span style="color: #bc6ec5;">]</span><span style="color: #4f97d7;">)</span>
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orgd99c33f" class="outline-2">
+<h2 id="orgd99c33f"><span class="section-number-2">4</span> 总结</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+burp-clj对Burp Extender API进行包装,并提供clojure运行时环境，通过nrepl可以方便地操作burp，针对特定操作也可以直接修改脚本，动态加载卸载。
+</p>
+
+<p>
+现阶段命名空间组织比较分散,也缺少相应的文档注释。
+</p>
+
+<p>
+注意不要加载来源不明的脚本文件，脚本可以执行任意代码，可能会危害本地系统。
+</p>
+
+<p>
+如果有burp插件需求，欢迎提issue。
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">&#20316;&#32773;: ntestoc</p>
+<p class="date">Created: 2020-09-27 日 22:40</p>
+</div>
+</body>
+</html>
