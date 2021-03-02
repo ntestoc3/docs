@@ -1,0 +1,38 @@
+#+TITLE: webpack--解析javascript map文件的burp-clj脚本
+#+DESCRIPTION: burp
+#+KEYWORDS: clojure, burp
+#+CATEGORIES: clojure, burp
+#+LANGUAGE: zh-CN
+#+OPTIONS: ^:t
+
+* 简介
+  前端打包大部分会使用webpack,如果发布时没有删除掉生成的.map文件,就可以从map文件中直接获取到开发时的js源码．
+
+  此burp-clj脚本可以自动检测js链接是否包含map文件，并自动下载map文件，还原js项目源码．
+  
+* 安装方法
+  参考之前文章burp-clj插件的安装方法,加载脚本https://github.com/ntestoc3/burp-scripts
+
+#+CAPTION: 加载脚本源，并启用webpack脚本．
+[[./burp-clj-webpack-1.png]]
+
+
+  然后设置webpack的保存目录:
+#+CAPTION: 设置webpack保存目录
+[[./burp-clj-webpack-2.png]]
+  
+* 使用方法
+  通过burp代理访问目标站点，如果webpack脚本发现存在js.map文件，就会自动下载，并解包js源码到设置的目录中．并添加相应的issue．
+
+#+CAPTION: 使用方法
+[[./burp-webpack.gif]]
+
+* 最后
+  本程序仅供于学习交流，请使用者遵守《中华人民共和国网络安全法》， 勿将此工具用于非授权的测试， 程序开发者不负任何连带法律责任。
+
+
+  
+  
+
+  
+  
